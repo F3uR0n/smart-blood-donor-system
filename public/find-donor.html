@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Find Donor — BloodNet</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* ── Emergency toggle ──────────────────────────────────── */
+    .emergency-toggle-bar {
+      background: rgba(220,38,38,0.08);
+      border: 1px solid rgba(220,38,38,0.2);
+      border-radius: var(--radius);
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .emergency-toggle-bar p { margin: 0; font-size: 0.9rem; }
+    .toggle-switch {
+      position: relative;
+      width: 48px; height: 26px;
+      flex-shrink: 0;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: var(--white-muted);
+      border-radius: 13px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .toggle-track::before {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 20px; height: 20px;
+      background: #fff;
+      border-radius: 50%;
+      transition: var(--transition);
+    }
+    .toggle-switch input:checked + .toggle-track { background: var(--crimson); }
+    .toggle-switch input:checked + .toggle-track::before { transform: translateX(22px); }
+
+    /* ── Donor Cards ───────────────────────────────────────── */
+    .donors-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+    .donor-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .donor-card:hover {
+      border-color: rgba(220,38,38,0.35);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-glow);
+    }
+    .donor-card.urgent {
+      border-color: rgba(220,38,38,0.5);
+      background: linear-gradient(135deg, rgba(220,38,38,0.06) 0%, var(--bg-card) 60%);
+    }
+    .donor-card.urgent::before {
+      content: 'URGENT';
+      position: absolute;
+      top: 12px; right: -24px;
+      background: var(--crimson);
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      padding: 2px 28px;
+      transform: rotate(30deg);
+    }
+    .donor-card__header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .donor-avatar {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--crimson) 0%, #7f1d1d 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .donor-card__name { font-weight: 700; font-size: 1rem; margin-bottom: 0.2rem; }
+    .donor-card__meta { font-size: 0.8rem; color: var(--white-muted); }
+    .donor-card__info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem;
+      margin-bottom: 1.25rem;
+    }
+    .donor-info-item { font-size: 0.8rem; }
+    .donor-info-item__label { color: var(--white-muted); margin-bottom: 0.15rem; }
+    .donor-info-item__value { color: var(--white); font-weight: 600; }
+    .donor-card__footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .distance-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.8rem;
+      color: var(--white-dim);
+    }
+
+    /* ── Results header ────────────────────────────────────── */
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .results-count { font-size: 0.9rem; color: var(--white-dim); }
+    .results-count strong { color: var(--white); }
+
+    /* Skeleton loader */
+    .skeleton {
+      background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-card-2) 50%, var(--bg-card) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 6px;
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    @media (max-width: 900px) { .donors-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) { .donors-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="navbar__inner">
+      <a href="index.html" class="navbar__logo">
+        <div class="navbar__logo-icon">🩸</div>
+        BloodNet
+      </a>
+      <ul class="navbar__links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="find-donor.html" class="active">Find Donor</a></li>
+        <li><a href="blood-banks.html">Blood Banks</a></li>
+        <li><a href="campaigns.html">Campaigns</a></li>
+        <li><a href="emergency.html">Emergency</a></li>
+      </ul>
+      <a href="login.html" class="btn btn-primary navbar__cta">Login</a>
+      <div class="navbar__hamburger" id="hamburger"><span></span><span></span><span></span></div>
+    </div>
+  </nav>
+
+  <div class="mobile-nav" id="mobileNav">
+    <button class="mobile-nav__close" id="mobileClose">✕</button>
+    <a href="index.html">Home</a>
+    <a href="find-donor.html">Find Donor</a>
+    <a href="blood-banks.html">Blood Banks</a>
+    <a href="campaigns.html">Campaigns</a>
+    <a href="emergency.html">Emergency</a>
+    <a href="login.html" class="btn btn-primary">Login</a>
+  </div>
+
+  <!-- Page Hero -->
+  <div class="page-hero">
+    <div class="container">
+      <span class="section-label">Donor Search</span>
+      <h1 class="reveal">Find a <span class="text-crimson">Compatible</span> Donor</h1>
+      <p style="max-width:520px; margin: 1rem auto 0;" class="reveal reveal-delay-1">
+        Search our verified donor network by blood group, location, and availability.
+        Compatible donors are highlighted automatically.
+      </p>
+    </div>
+  </div>
+
+  <section class="section" style="padding-top: 0;">
+    <div class="container">
+
+      <!-- Emergency toggle -->
+      <div class="emergency-toggle-bar reveal">
+        <div>
+          <strong style="color: var(--crimson-light);">🚨 Emergency Mode</strong>
+          <p>Highlight only urgent &amp; immediately available compatible donors.</p>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="emergencyToggle">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-bar reveal">
+        <div class="form-group">
+          <label>Blood Group</label>
+          <select class="form-control" id="filterBlood">
+            <option value="">All Groups</option>
+            <option value="A+">A+</option>
+            <option value="A-">A−</option>
+            <option value="B+">B+</option>
+            <option value="B-">B−</option>
+            <option value="AB+">AB+</option>
+            <option value="AB-">AB−</option>
+            <option value="O+">O+</option>
+            <option value="O-">O−</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Location / City</label>
+          <input type="text" class="form-control" id="filterCity" placeholder="e.g. Dhaka">
+        </div>
+        <div class="form-group">
+          <label>Availability</label>
+          <select class="form-control" id="filterAvail">
+            <option value="">Any</option>
+            <option value="1">Available Now</option>
+            <option value="0">Not Available</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Sort By</label>
+          <select class="form-control" id="filterSort">
+            <option value="distance">Distance</option>
+            <option value="donations">Total Donations</option>
+            <option value="recent">Recently Donated</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex: 0;">
+          <label>&nbsp;</label>
+          <button class="btn btn-primary" id="searchBtn">Search</button>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div class="results-header reveal">
+        <div class="results-count">Showing <strong id="resultCount">12</strong> donors</div>
+        <div class="flex gap-2">
+          <span class="badge badge-blood" id="activeBloodFilter" style="display:none;"></span>
+          <span class="badge badge-success" id="activeCityFilter" style="display:none;"></span>
+        </div>
+      </div>
+
+      <div class="donors-grid" id="donorsGrid">
+        <!-- Populated by JS -->
+      </div>
+
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__bottom">
+        <a href="index.html" class="navbar__logo" style="font-size:1rem;">
+          <div class="navbar__logo-icon" style="width:28px;height:28px;font-size:0.85rem;">🩸</div>
+          BloodNet
+        </a>
+        <span>© 2026 BloodNet — Smart Blood &amp; Emergency Donor Network</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script src="js/find-donor.js"></script>
+</body>
+</html>

@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Blood &amp; Emergency Donor Network</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* ── Hero ──────────────────────────────────────────────── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      padding-top: 5rem;
+    }
+    .hero__bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(220,38,38,0.15) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 40% at 80% 80%, rgba(30,58,95,0.3) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .hero__grid-overlay {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+    }
+    .hero__inner {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      width: 100%;
+    }
+    .hero__eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--crimson-dim);
+      border: 1px solid rgba(220,38,38,0.25);
+      border-radius: 50px;
+      padding: 0.35rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--crimson-light);
+      letter-spacing: 0.05em;
+      margin-bottom: 1.5rem;
+    }
+    .hero__eyebrow-dot {
+      width: 7px; height: 7px;
+      background: var(--crimson);
+      border-radius: 50%;
+      animation: blink 1.5s ease-in-out infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+    .hero__title {
+      margin-bottom: 1.5rem;
+    }
+    .hero__title span {
+      color: var(--crimson-light);
+      position: relative;
+    }
+    .hero__subtitle {
+      font-size: 1.1rem;
+      color: var(--white-dim);
+      max-width: 500px;
+      margin-bottom: 2.5rem;
+    }
+    .hero__actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .hero__visual {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .blood-drop-wrap {
+      position: relative;
+      width: 300px;
+      height: 380px;
+    }
+    .blood-drop-svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 0 40px rgba(220, 38, 38, 0.4));
+      animation: float 4s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-18px); }
+    }
+    .blood-drop-ring {
+      position: absolute;
+      inset: -20px;
+      border: 1px solid rgba(220,38,38,0.15);
+      border-radius: 50%;
+      animation: spin-slow 20s linear infinite;
+    }
+    .blood-drop-ring-2 {
+      position: absolute;
+      inset: -45px;
+      border: 1px dashed rgba(220,38,38,0.08);
+      border-radius: 50%;
+      animation: spin-slow 35s linear infinite reverse;
+    }
+    @keyframes spin-slow { to { transform: rotate(360deg); } }
+
+    /* ── Stats Section ─────────────────────────────────────── */
+    .stats-section {
+      background: var(--bg-card);
+      border-top: 1px solid var(--border-glass);
+      border-bottom: 1px solid var(--border-glass);
+      padding: 4rem 0;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2rem;
+      text-align: center;
+    }
+    .stat-item__number {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 800;
+      color: var(--crimson-light);
+      line-height: 1;
+    }
+    .stat-item__label {
+      font-size: 0.9rem;
+      color: var(--white-dim);
+      margin-top: 0.5rem;
+    }
+    .stat-item__divider {
+      width: 30px;
+      height: 2px;
+      background: var(--crimson);
+      margin: 0.5rem auto;
+      border-radius: 2px;
+    }
+
+    /* ── How It Works ──────────────────────────────────────── */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+      position: relative;
+    }
+    .steps-grid::before {
+      content: '';
+      position: absolute;
+      top: 40px;
+      left: calc(16.66% + 1rem);
+      right: calc(16.66% + 1rem);
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--crimson), transparent);
+    }
+    .step-card {
+      text-align: center;
+      padding: 2rem 1.5rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      position: relative;
+      transition: var(--transition);
+    }
+    .step-card:hover {
+      border-color: rgba(220,38,38,0.3);
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-glow);
+    }
+    .step-card__number {
+      width: 56px;
+      height: 56px;
+      background: var(--crimson-dim);
+      border: 2px solid rgba(220,38,38,0.4);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--crimson-light);
+      margin: 0 auto 1.25rem;
+    }
+    .step-card__icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+    .step-card h3 { margin-bottom: 0.5rem; font-size: 1.15rem; }
+    .step-card p  { font-size: 0.9rem; }
+
+    /* ── Emergency CTA ─────────────────────────────────────── */
+    .emergency-cta {
+      background: linear-gradient(135deg, rgba(220,38,38,0.15) 0%, rgba(17,24,39,0) 60%);
+      border: 1px solid rgba(220,38,38,0.25);
+      border-radius: var(--radius-lg);
+      padding: 4rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .emergency-cta::before {
+      content: '';
+      position: absolute;
+      top: -60px; left: 50%;
+      transform: translateX(-50%);
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(220,38,38,0.2) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .emergency-cta h2 { margin-bottom: 1rem; }
+    .emergency-cta p  { margin-bottom: 2rem; }
+
+    /* ── Blood Types ───────────────────────────────────────── */
+    .blood-types-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 1rem;
+    }
+    .blood-type-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius);
+      padding: 1.25rem 0.5rem;
+      text-align: center;
+      transition: var(--transition);
+      cursor: default;
+    }
+    .blood-type-card:hover {
+      border-color: var(--crimson);
+      background: var(--crimson-dim);
+      transform: translateY(-4px);
+    }
+    .blood-type-card__type {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--crimson-light);
+    }
+    .blood-type-card__label {
+      font-size: 0.7rem;
+      color: var(--white-muted);
+      margin-top: 0.25rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .blood-types-grid { grid-template-columns: repeat(4, 1fr); }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .steps-grid::before { display: none; }
+    }
+    @media (max-width: 768px) {
+      .hero__inner { grid-template-columns: 1fr; text-align: center; }
+      .hero__subtitle { margin: 0 auto 2.5rem; }
+      .hero__actions { justify-content: center; }
+      .hero__visual { display: none; }
+      .blood-types-grid { grid-template-columns: repeat(4, 1fr); }
+      .steps-grid { grid-template-columns: 1fr; }
+      .emergency-cta { padding: 2.5rem 1.5rem; }
+    }
+    @media (max-width: 480px) {
+      .blood-types-grid { grid-template-columns: repeat(2, 1fr); }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Navbar ──────────────────────────────────────────────── -->
+  <nav class="navbar">
+    <div class="navbar__inner">
+      <a href="index.html" class="navbar__logo">
+        <div class="navbar__logo-icon">🩸</div>
+        BloodNet
+      </a>
+      <ul class="navbar__links">
+        <li><a href="index.html" class="active">Home</a></li>
+        <li><a href="find-donor.html">Find Donor</a></li>
+        <li><a href="blood-banks.html">Blood Banks</a></li>
+        <li><a href="campaigns.html">Campaigns</a></li>
+        <li><a href="emergency.html">Emergency</a></li>
+      </ul>
+      <a href="login.html" class="btn btn-primary navbar__cta">Login</a>
+      <div class="navbar__hamburger" id="hamburger">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Mobile Nav ──────────────────────────────────────────── -->
+  <div class="mobile-nav" id="mobileNav">
+    <button class="mobile-nav__close" id="mobileClose">✕</button>
+    <a href="index.html">Home</a>
+    <a href="find-donor.html">Find Donor</a>
+    <a href="blood-banks.html">Blood Banks</a>
+    <a href="campaigns.html">Campaigns</a>
+    <a href="emergency.html">Emergency</a>
+    <a href="login.html" class="btn btn-primary">Login</a>
+  </div>
+
+  <!-- ── Hero ────────────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="hero__bg"></div>
+    <div class="hero__grid-overlay"></div>
+    <div class="hero__inner">
+      <div class="hero__content">
+        <div class="hero__eyebrow">
+          <span class="hero__eyebrow-dot"></span>
+          Emergency Network Active
+        </div>
+        <h1 class="hero__title">
+          Give Blood.<br>
+          <span>Save Lives.</span>
+        </h1>
+        <p class="hero__subtitle">
+          Connect with compatible blood donors in your area instantly. Our intelligent
+          matching system ensures the right blood reaches the right patient at the right time.
+        </p>
+        <div class="hero__actions">
+          <a href="login.html" class="btn btn-primary btn-lg btn-pulse">Become a Donor</a>
+          <a href="emergency.html" class="btn btn-outline btn-lg">Emergency Request</a>
+        </div>
+      </div>
+      <div class="hero__visual">
+        <div class="blood-drop-wrap">
+          <div class="blood-drop-ring"></div>
+          <div class="blood-drop-ring-2"></div>
+          <svg class="blood-drop-svg" viewBox="0 0 200 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="dropGrad" cx="40%" cy="30%" r="70%">
+                <stop offset="0%" stop-color="#ef4444" stop-opacity="0.9"/>
+                <stop offset="100%" stop-color="#7f1d1d" stop-opacity="1"/>
+              </radialGradient>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+                <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+            <!-- Drop shape -->
+            <path d="M100 20 C100 20, 20 100, 20 155 C20 207, 57 240, 100 240 C143 240, 180 207, 180 155 C180 100, 100 20, 100 20 Z"
+                  fill="url(#dropGrad)" filter="url(#glow)"/>
+            <!-- Highlight -->
+            <ellipse cx="75" cy="120" rx="18" ry="30" fill="white" fill-opacity="0.12" transform="rotate(-15 75 120)"/>
+            <!-- Cross symbol -->
+            <rect x="88" y="148" width="24" height="6" rx="3" fill="white" fill-opacity="0.6"/>
+            <rect x="97" y="139" width="6" height="24" rx="3" fill="white" fill-opacity="0.6"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Live Stats ───────────────────────────────────────────── -->
+  <section class="stats-section">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat-item reveal">
+          <div class="stat-item__number" data-target="12480">0</div>
+          <div class="stat-item__divider"></div>
+          <div class="stat-item__label">Donors Registered</div>
+        </div>
+        <div class="stat-item reveal reveal-delay-1">
+          <div class="stat-item__number" data-target="3240">0</div>
+          <div class="stat-item__divider"></div>
+          <div class="stat-item__label">Lives Saved</div>
+        </div>
+        <div class="stat-item reveal reveal-delay-2">
+          <div class="stat-item__number" data-target="86">0</div>
+          <div class="stat-item__divider"></div>
+          <div class="stat-item__label">Blood Banks</div>
+        </div>
+        <div class="stat-item reveal reveal-delay-3">
+          <div class="stat-item__number" data-target="520">0</div>
+          <div class="stat-item__divider"></div>
+          <div class="stat-item__label">Campaigns Run</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Blood Types ──────────────────────────────────────────── -->
+  <section class="section">
+    <div class="container">
+      <div class="text-center mb-3">
+        <span class="section-label">All Types Covered</span>
+        <h2 class="section-title">Every Blood Type.<br>Every Life Matters.</h2>
+        <div class="divider divider-center"></div>
+      </div>
+      <div class="blood-types-grid">
+        <div class="blood-type-card reveal">
+          <div class="blood-type-card__type">A+</div>
+          <div class="blood-type-card__label">Available</div>
+        </div>
+        <div class="blood-type-card reveal reveal-delay-1">
+          <div class="blood-type-card__type">A−</div>
+          <div class="blood-type-card__label">Available</div>
+        </div>
+        <div class="blood-type-card reveal reveal-delay-2">
+          <div class="blood-type-card__type">B+</div>
+          <div class="blood-type-card__label">Available</div>
+        </div>
+        <div class="blood-type-card reveal reveal-delay-3">
+          <div class="blood-type-card__type">B−</div>
+          <div class="blood-type-card__label">Available</div>
+        </div>
+        <div class="blood-type-card reveal">
+          <div class="blood-type-card__type">AB+</div>
+          <div class="blood-type-card__label">Available</div>
+        </div>
+        <div class="blood-type-card reveal reveal-delay-1">
+          <div class="blood-type-card__type">AB−</div>
+          <div class="blood-type-card__label">Available</div>
+        </div>
+        <div class="blood-type-card reveal reveal-delay-2">
+          <div class="blood-type-card__type">O+</div>
+          <div class="blood-type-card__label">Available</div>
+        </div>
+        <div class="blood-type-card reveal reveal-delay-3">
+          <div class="blood-type-card__type">O−</div>
+          <div class="blood-type-card__label">Universal</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── How It Works ─────────────────────────────────────────── -->
+  <section class="section" style="background: var(--bg-card); border-top: 1px solid var(--border-glass); border-bottom: 1px solid var(--border-glass);">
+    <div class="container">
+      <div class="text-center mb-3">
+        <span class="section-label">Simple Process</span>
+        <h2 class="section-title">How It Works</h2>
+        <div class="divider divider-center"></div>
+      </div>
+      <div class="steps-grid">
+        <div class="step-card reveal">
+          <div class="step-card__number">01</div>
+          <div class="step-card__icon">📋</div>
+          <h3>Register &amp; Profile</h3>
+          <p>Sign up with your blood group and health details. Our system verifies your eligibility securely.</p>
+        </div>
+        <div class="step-card reveal reveal-delay-2">
+          <div class="step-card__number">02</div>
+          <div class="step-card__icon">🔍</div>
+          <h3>Intelligent Match</h3>
+          <p>Our algorithm matches donors with recipients based on blood type, location, and availability.</p>
+        </div>
+        <div class="step-card reveal reveal-delay-4">
+          <div class="step-card__number">03</div>
+          <div class="step-card__icon">🩸</div>
+          <h3>Donate &amp; Save</h3>
+          <p>Respond to requests, donate at a nearby center, and earn rewards for your life-saving act.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Emergency CTA ────────────────────────────────────────── -->
+  <section class="section">
+    <div class="container">
+      <div class="emergency-cta reveal">
+        <span class="section-label">Urgent Need</span>
+        <h2>Need Blood Right Now?</h2>
+        <p class="section-subtitle" style="margin: 0 auto 2rem;">
+          Our emergency request system instantly notifies compatible donors near your hospital.
+          Every second counts — don't wait.
+        </p>
+        <a href="emergency.html" class="btn btn-primary btn-lg btn-pulse">
+          🚨 Submit Emergency Request
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ───────────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__grid">
+        <div class="footer__brand">
+          <div class="navbar__logo" style="margin-bottom: 1rem;">
+            <div class="navbar__logo-icon">🩸</div>
+            BloodNet
+          </div>
+          <p>Smart Blood &amp; Emergency Donor Network — connecting donors, recipients, and blood banks in real time.</p>
+        </div>
+        <div class="footer__col">
+          <h4>Platform</h4>
+          <a href="find-donor.html">Find Donor</a>
+          <a href="blood-banks.html">Blood Banks</a>
+          <a href="campaigns.html">Campaigns</a>
+          <a href="emergency.html">Emergency</a>
+        </div>
+        <div class="footer__col">
+          <h4>Account</h4>
+          <a href="login.html">Login</a>
+          <a href="login.html#register">Register</a>
+          <a href="dashboard.html">Dashboard</a>
+        </div>
+        <div class="footer__col">
+          <h4>Blood Groups</h4>
+          <a href="find-donor.html">A+, A−</a>
+          <a href="find-donor.html">B+, B−</a>
+          <a href="find-donor.html">AB+, AB−</a>
+          <a href="find-donor.html">O+, O−</a>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <span>© 2026 BloodNet — Smart Blood &amp; Emergency Donor Network</span>
+        <span>Saving lives, one drop at a time 🩸</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

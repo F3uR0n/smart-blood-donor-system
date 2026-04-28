@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — BloodNet</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* ── Dashboard Layout ──────────────────────────────────── */
+    .dashboard-layout {
+      display: flex;
+      flex: 1;
+      padding-top: 70px;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      background: var(--bg-card);
+      border-right: 1px solid var(--border-glass);
+      padding: 2rem 1.25rem;
+      position: sticky;
+      top: 70px;
+      height: calc(100vh - 70px);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar__avatar {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, var(--crimson) 0%, #7f1d1d 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin: 0 auto 1rem;
+      box-shadow: 0 0 20px var(--crimson-glow);
+    }
+    .sidebar__name {
+      text-align: center;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.05rem;
+      margin-bottom: 0.2rem;
+    }
+    .sidebar__role-badge {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+    .sidebar__divider {
+      height: 1px;
+      background: var(--border-glass);
+      margin-bottom: 1.5rem;
+    }
+    .sidebar__nav-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--white-muted);
+      padding: 0 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+    .sidebar__nav a {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.65rem 0.75rem;
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--white-dim);
+      transition: var(--transition);
+      margin-bottom: 0.25rem;
+    }
+    .sidebar__nav a:hover,
+    .sidebar__nav a.active {
+      background: var(--crimson-dim);
+      color: var(--crimson-light);
+    }
+    .sidebar__nav a .nav-icon { font-size: 1.1rem; width: 20px; }
+    .sidebar__bottom {
+      margin-top: auto;
+    }
+    .sidebar__logout {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.65rem 0.75rem;
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--white-muted);
+      cursor: pointer;
+      transition: var(--transition);
+      width: 100%;
+    }
+    .sidebar__logout:hover { color: var(--crimson-light); background: var(--crimson-dim); }
+
+    /* ── Role Demo Switcher ─────────────────────────────────── */
+    .role-demo-bar {
+      background: var(--bg-card-2);
+      border-bottom: 1px solid var(--border-glass);
+      padding: 0.6rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-size: 0.82rem;
+      color: var(--white-muted);
+    }
+    .role-demo-bar span { font-weight: 600; }
+    .role-btn {
+      padding: 0.3rem 0.9rem;
+      border-radius: 50px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      border: 1px solid var(--border-glass);
+      color: var(--white-dim);
+    }
+    .role-btn.active { background: var(--crimson); color: #fff; border-color: var(--crimson); }
+
+    /* Main content */
+    .dashboard-main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .dashboard-content {
+      padding: 2rem;
+      flex: 1;
+    }
+
+    /* ── Stat cards ────────────────────────────────────────── */
+    .dash-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+    .dash-stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem 1.5rem;
+      transition: var(--transition);
+    }
+    .dash-stat-card:hover {
+      border-color: rgba(220,38,38,0.3);
+      transform: translateY(-3px);
+    }
+    .dash-stat-card__label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--white-muted);
+      margin-bottom: 0.5rem;
+    }
+    .dash-stat-card__value {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--white);
+      line-height: 1;
+    }
+    .dash-stat-card__sub {
+      font-size: 0.8rem;
+      color: var(--white-muted);
+      margin-top: 0.35rem;
+    }
+    .dash-stat-card__icon {
+      font-size: 1.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    /* ── Section panels ────────────────────────────────────── */
+    .dash-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+    .dash-panel__header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border-glass);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .dash-panel__title {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+    .dash-panel__body { padding: 1.5rem; }
+
+    /* ── Table ─────────────────────────────────────────────── */
+    .dash-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    .dash-table th {
+      text-align: left;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--white-muted);
+      padding: 0 0 0.75rem;
+      border-bottom: 1px solid var(--border-glass);
+    }
+    .dash-table td {
+      padding: 0.85rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      color: var(--white-dim);
+    }
+    .dash-table tr:last-child td { border-bottom: none; }
+    .dash-table td:first-child { color: var(--white); font-weight: 500; }
+
+    /* ── Progress bar ──────────────────────────────────────── */
+    .progress-bar {
+      height: 6px;
+      background: var(--border-glass);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+    .progress-bar__fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--crimson), #f87171);
+    }
+
+    /* ── Leaderboard ───────────────────────────────────────── */
+    .leaderboard-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .leaderboard-item:last-child { border-bottom: none; }
+    .leaderboard-item__rank {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 800;
+      width: 32px;
+      text-align: center;
+      color: var(--white-muted);
+    }
+    .leaderboard-item:nth-child(1) .leaderboard-item__rank { color: #fbbf24; }
+    .leaderboard-item:nth-child(2) .leaderboard-item__rank { color: #94a3b8; }
+    .leaderboard-item:nth-child(3) .leaderboard-item__rank { color: #cd7c2f; }
+    .leaderboard-item__avatar {
+      width: 38px; height: 38px;
+      background: var(--crimson-dim);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--crimson-light);
+    }
+    .leaderboard-item__info { flex: 1; }
+    .leaderboard-item__name { font-weight: 600; font-size: 0.9rem; }
+    .leaderboard-item__meta { font-size: 0.78rem; color: var(--white-muted); }
+    .leaderboard-item__points {
+      font-family: var(--font-display);
+      font-weight: 700;
+      color: var(--crimson-light);
+    }
+
+    /* ── Notification item ─────────────────────────────────── */
+    .notif-item {
+      display: flex;
+      gap: 1rem;
+      padding: 0.85rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .notif-item:last-child { border-bottom: none; }
+    .notif-item__icon {
+      width: 36px; height: 36px;
+      background: var(--crimson-dim);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+    .notif-item__text { font-size: 0.875rem; color: var(--white-dim); }
+    .notif-item__text strong { color: var(--white); }
+    .notif-item__time { font-size: 0.75rem; color: var(--white-muted); margin-top: 0.2rem; }
+
+    /* Role views */
+    .role-view { display: none; }
+    .role-view.active { display: block; }
+
+    /* ── Two-col layout ────────────────────────────────────── */
+    .dash-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    /* Admin table */
+    .admin-controls { display: flex; gap: 0.5rem; }
+
+    /* Mobile sidebar toggle */
+    .sidebar-toggle {
+      display: none;
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      width: 52px; height: 52px;
+      background: var(--crimson);
+      border-radius: 50%;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      z-index: 900;
+      box-shadow: 0 4px 20px var(--crimson-glow);
+    }
+    .sidebar.mobile-open {
+      position: fixed;
+      top: 70px; left: 0; bottom: 0;
+      z-index: 800;
+    }
+
+    @media (max-width: 1100px) {
+      .dash-stats { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .sidebar-toggle { display: flex; }
+      .sidebar.mobile-open { display: flex; }
+      .dash-grid-2 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .dash-stats { grid-template-columns: 1fr; }
+      .dashboard-content { padding: 1rem; }
+      .role-demo-bar { flex-wrap: wrap; gap: 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar scrolled">
+    <div class="navbar__inner">
+      <a href="index.html" class="navbar__logo">
+        <div class="navbar__logo-icon">🩸</div>
+        BloodNet
+      </a>
+      <ul class="navbar__links">
+        <li><a href="find-donor.html">Find Donor</a></li>
+        <li><a href="blood-banks.html">Blood Banks</a></li>
+        <li><a href="campaigns.html">Campaigns</a></li>
+        <li><a href="emergency.html">Emergency</a></li>
+      </ul>
+      <a href="login.html" class="btn btn-outline btn-sm navbar__cta">Logout</a>
+    </div>
+  </nav>
+
+  <div class="dashboard-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__avatar" id="avatarInitials">JD</div>
+      <div class="sidebar__name" id="sidebarName">John Doe</div>
+      <div class="sidebar__role-badge">
+        <span class="badge badge-blood" id="sidebarRole">Donor</span>
+      </div>
+      <div class="sidebar__divider"></div>
+
+      <div class="sidebar__nav-label">Overview</div>
+      <nav class="sidebar__nav" id="sidebarNav">
+        <!-- populated by JS -->
+      </nav>
+
+      <div class="sidebar__bottom">
+        <div class="sidebar__divider"></div>
+        <a href="login.html" class="sidebar__logout">
+          <span class="nav-icon">🚪</span> Logout
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="dashboard-main">
+      <!-- Role demo switcher -->
+      <div class="role-demo-bar">
+        <span>Demo View:</span>
+        <button class="role-btn active" data-role="donor">Donor</button>
+        <button class="role-btn" data-role="recipient">Recipient</button>
+        <button class="role-btn" data-role="admin">Admin</button>
+      </div>
+
+      <div class="dashboard-content">
+
+        <!-- ── DONOR VIEW ───────────────────────────────────── -->
+        <div class="role-view active" id="view-donor">
+          <h2 style="margin-bottom: 0.25rem;">Welcome back, <span class="text-crimson">John</span> 👋</h2>
+          <p style="margin-bottom: 1.75rem;">You've saved 3 lives this year. Keep it up!</p>
+
+          <div class="dash-stats">
+            <div class="dash-stat-card">
+              <div class="dash-stat-card__icon">🩸</div>
+              <div class="dash-stat-card__label">Total Donations</div>
+              <div class="dash-stat-card__value">7</div>
+              <div class="dash-stat-card__sub">+1 this month</div>
+            </div>
+            <div class="dash-stat-card">
+              <div class="dash-stat-card__icon">⭐</div>
+              <div class="dash-stat-card__label">Points Earned</div>
+              <div class="dash-stat-card__value">350</div>
+              <div class="dash-stat-card__sub">Top 12% globally</div>
+            </div>
+            <div class="dash-stat-card">
+              <div class="dash-stat-card__icon">🏆</div>
+              <div class="dash-stat-card__label">Global Rank</div>
+              <div class="dash-stat-card__value">#42</div>
+              <div class="dash-stat-card__sub">Out of 12,480</div>
+            </div>
+            <div class="dash-stat-card">
+              <div class="dash-stat-card__icon">📅</div>
+              <div class="dash-stat-card__label">Next Eligible</div>
+              <div class="dash-stat-card__value">Jun 12</div>
+              <div class="dash-stat-card__sub">47 days away</div>
+            </div>
+          </div>
+
+          <div class="dash-grid-2">
+            <!-- Donation History -->
+            <div class="dash-panel">
+              <div class="dash-panel__header">
+                <div class="dash-panel__title">Donation History</div>
+                <a href="#" class="btn btn-ghost btn-sm">View All</a>
+              </div>
+              <div class="dash-panel__body">
+                <table class="dash-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Hospital</th>
+                      <th>Units</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>2026-04-10</td>
+                      <td>Dhaka Medical</td>
+                      <td>1</td>
+                      <td><span class="badge badge-success">Completed</span></td>
+                    </tr>
+                    <tr>
+                      <td>2026-01-22</td>
+                      <td>Square Hospital</td>
+                      <td>1</td>
+                      <td><span class="badge badge-success">Completed</span></td>
+                    </tr>
+                    <tr>
+                      <td>2025-09-05</td>
+                      <td>Labaid Hospital</td>
+                      <td>1</td>
+                      <td><span class="badge badge-success">Completed</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Health Profile -->
+            <div class="dash-panel">
+              <div class="dash-panel__header">
+                <div class="dash-panel__title">Health Profile</div>
+                <a href="#" class="btn btn-outline btn-sm">Edit</a>
+              </div>
+              <div class="dash-panel__body">
+                <table class="dash-table">
+                  <tr><td>Blood Group</td><td><span class="badge badge-blood">B+</span></td></tr>
+                  <tr><td>Weight</td><td>72 kg</td></tr>
+                  <tr><td>Hemoglobin</td><td>14.2 g/dL</td></tr>
+                  <tr><td>Eligibility</td><td><span class="badge badge-success">Eligible</span></td></tr>
+                  <tr><td>Diseases</td><td>None recorded</td></tr>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Leaderboard + Notifications -->
+          <div class="dash-grid-2">
+            <div class="dash-panel">
+              <div class="dash-panel__header">
+                <div class="dash-panel__title">🏆 Leaderboard</div>
+                <span class="badge badge-blood">Your rank: #42</span>
+              </div>
+              <div class="dash-panel__body">
+                <div class="leaderboard-item">
+                  <div class="leaderboard-item__rank">🥇</div>
+                  <div class="leaderboard-item__avatar">RK</div>
+                  <div class="leaderboard-item__info">
+                    <div class="leaderboard-item__name">Rafiq K.</div>
+                    <div class="leaderboard-item__meta">A+ · Dhaka · 18 donations</div>
+                  </div>
+                  <div class="leaderboard-item__points">900 pts</div>
+                </div>
+                <div class="leaderboard-item">
+                  <div class="leaderboard-item__rank">🥈</div>
+                  <div class="leaderboard-item__avatar">SH</div>
+                  <div class="leaderboard-item__info">
+                    <div class="leaderboard-item__name">Sumaiya H.</div>
+                    <div class="leaderboard-item__meta">O− · Chittagong · 15 donations</div>
+                  </div>
+                  <div class="leaderboard-item__points">750 pts</div>
+                </div>
+                <div class="leaderboard-item">
+                  <div class="leaderboard-item__rank">🥉</div>
+                  <div class="leaderboard-item__avatar">MI</div>
+                  <div class="leaderboard-item__info">
+                    <div class="leaderboard-item__name">Masud I.</div>
+                    <div class="leaderboard-item__meta">B+ · Sylhet · 13 donations</div>
+                  </div>
+                  <div class="leaderboard-item__points">650 pts</div>
+                </div>
+                <div class="leaderboard-item" style="background: rgba(220,38,38,0.05); border-radius: 8px; padding: 0.75rem; margin-top: 0.5rem;">
+                  <div class="leaderboard-item__rank" style="color: var(--crimson-light);">#42</div>
+                  <div class="leaderboard-item__avatar" style="background: var(--crimson); color: #fff;">JD</div>
+                  <div class="leaderboard-item__info">
+                    <div class="leaderboard-item__name">You (John Doe)</div>
+                    <div class="leaderboard-item__meta">B+ · Dhaka · 7 donations</div>
+                  </div>
+                  <div class="leaderboard-item__points">350 pts</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="dash-panel">
+              <div class="dash-panel__header">
+                <div class="dash-panel__title">🔔 Notifications</div>
+                <span class="badge badge-blood">3 new</span>
+              </div>
+              <div class="dash-panel__body">
+                <div class="notif-item">
+                  <div class="notif-item__icon">🚨</div>
+                  <div>
+                    <div class="notif-item__text"><strong>Emergency match!</strong> A B+ recipient at Dhaka Medical needs blood urgently.</div>
+                    <div class="notif-item__time">2 hours ago</div>
+                  </div>
+                </div>
+                <div class="notif-item">
+                  <div class="notif-item__icon">🏅</div>
+                  <div>
+                    <div class="notif-item__text"><strong>Reward available!</strong> RedCross Campaign is offering 50 bonus points.</div>
+                    <div class="notif-item__time">1 day ago</div>
+                  </div>
+                </div>
+                <div class="notif-item">
+                  <div class="notif-item__icon">📅</div>
+                  <div>
+                    <div class="notif-item__text">Your next eligible donation date is <strong>June 12, 2026</strong>.</div>
+                    <div class="notif-item__time">3 days ago</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── RECIPIENT VIEW ────────────────────────────────── -->
+        <div class="role-view" id="view-recipient">
+          <h2 style="margin-bottom: 0.25rem;">Hello, <span class="text-crimson">Ayesha</span> 👋</h2>
+          <p style="margin-bottom: 1.75rem;">Track your blood requests and matched donors below.</p>
+
+          <div class="dash-stats">
+            <div class="dash-stat-card">
+              <div class="dash-stat-card__icon">📋</div>
+              <div class="dash-stat-card__label">Active Requests</div>
+              <div class="dash-stat-card__value">2</div>
+              <div class="dash-stat-card__sub">1 urgent</div>
+            </div>
+            <div class="dash-stat-card">
+              <div class="dash-stat-card__icon">✅</div>
+              <div class="dash-stat-card__label">Matched Donors</div>
+              <div class="dash-stat-card__value">4</div>
+              <div class="dash-stat-card__sub">Available now</div>
+            </div>
+            <div class="dash-stat-card">
+              <div class="dash-stat-card__icon">✔️</div>
+              <div class="dash-stat-card__label">Fulfilled</div>
+              <div class="dash-stat-card__value">3</div>
+              <div class="dash-stat-card__sub">Total requests</div>
+            </div>
+            <div class="dash-stat-card">
+              <div class="dash-stat-card__icon">🩸</div>
+              <div class="dash-stat-card__label">Blood Group</div>
+              <div class="dash-stat-card__value">A+</div>
+              <div class="dash-stat-card__sub">Universal recipient</div>
+            </div>
+          </div>
+
+          <div class="dash-panel">
+            <div class="dash-panel__header">
+              <div class="dash-panel__title">Active Emergency Requests</div>
+              <a href="emergency.html" class="btn btn-primary btn-sm">+ New Request</a>
+            </div>
+            <div class="dash-panel__body">
+              <table class="dash-table">
+                <thead>
+                  <tr>
+                    <th>Request ID</th>
+                    <th>Blood Type</th>
+                    <th>Units</th>
+                    <th>Hospital</th>
+                    <th>Urgency</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>#ER-0042</td>
+                    <td><span class="badge badge-blood">A+</span></td>
+                    <td>2</td>
+                    <td>Dhaka Medical</td>
+                    <td><span class="badge badge-warning">High</span></td>
+                    <td><span class="badge badge-success">Matched</span></td>
+                  </tr>
+                  <tr>
+                    <td>#ER-0041</td>
+                    <td><span class="badge badge-blood">A+</span></td>
+                    <td>1</td>
+                    <td>Square Hospital</td>
+                    <td><span class="badge" style="background:rgba(220,38,38,0.12);color:var(--crimson-light);border:1px solid rgba(220,38,38,0.3);">Critical</span></td>
+                    <td><span class="badge" style="background:rgba(245,158,11,0.12);color:var(--warning);border:1px solid rgba(245,158,11,0.3);">Pending</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="dash-panel">
+            <div class="dash-panel__header">
+              <div class="dash-panel__title">Matched Donors</div>
+            </div>
+            <div class="dash-panel__body">
+              <table class="dash-table">
+                <thead>
+                  <tr><th>Donor</th><th>Blood Type</th><th>Distance</th><th>Available</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>R. K. (masked)</td>
+                    <td><span class="badge badge-blood">A+</span></td>
+                    <td>1.2 km</td>
+                    <td><span class="badge badge-success">Yes</span></td>
+                    <td><button class="btn btn-primary btn-sm">Contact</button></td>
+                  </tr>
+                  <tr>
+                    <td>S. M. (masked)</td>
+                    <td><span class="badge badge-blood">A+</span></td>
+                    <td>3.4 km</td>
+                    <td><span class="badge badge-success">Yes</span></td>
+                    <td><button class="btn btn-primary btn-sm">Contact</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── ADMIN VIEW ─────────────────────────────────────── -->
+        <div class="role-view" id="view-admin">
+          <h2 style="margin-bottom: 0.25rem;">Admin Panel <span class="text-crimson">🛡️</span></h2>
+          <p style="margin-bottom: 1.75rem;">System overview and management controls.</p>
+
+          <div class="dash-stats">
+            <div class="dash-stat-card">
+              <div class="dash-stat-card__icon">👥</div>
+              <div class="dash-stat-card__label">Total Users</div>
+              <div class="dash-stat-card__value">12,480</div>
+              <div class="dash-stat-card__sub">+84 this week</div>
+            </div>
+            <div class="dash-stat-card">
+              <div class="dash-stat-card__icon">🚨</div>
+              <div class="dash-stat-card__label">Open Requests</div>
+              <div class="dash-stat-card__value">34</div>
+              <div class="dash-stat-card__sub">8 critical</div>
+            </div>
+            <div class="dash-stat-card">
+              <div class="dash-stat-card__icon">🏥</div>
+              <div class="dash-stat-card__label">Blood Banks</div>
+              <div class="dash-stat-card__value">86</div>
+              <div class="dash-stat-card__sub">3 low stock</div>
+            </div>
+            <div class="dash-stat-card">
+              <div class="dash-stat-card__icon">📣</div>
+              <div class="dash-stat-card__label">Active Campaigns</div>
+              <div class="dash-stat-card__value">12</div>
+              <div class="dash-stat-card__sub">2 ending soon</div>
+            </div>
+          </div>
+
+          <div class="dash-panel">
+            <div class="dash-panel__header">
+              <div class="dash-panel__title">User Management</div>
+              <div class="admin-controls">
+                <input class="form-control" style="width:180px; padding: 0.4rem 0.75rem; font-size:0.85rem;" placeholder="Search users…">
+                <button class="btn btn-primary btn-sm">Add User</button>
+              </div>
+            </div>
+            <div class="dash-panel__body">
+              <table class="dash-table">
+                <thead>
+                  <tr><th>Name</th><th>Role</th><th>Blood Type</th><th>Location</th><th>Status</th><th>Actions</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Rafiq Karim</td>
+                    <td>Donor</td>
+                    <td><span class="badge badge-blood">A+</span></td>
+                    <td>Dhaka</td>
+                    <td><span class="badge badge-success">Active</span></td>
+                    <td><button class="btn btn-ghost btn-sm">Edit</button></td>
+                  </tr>
+                  <tr>
+                    <td>Ayesha Begum</td>
+                    <td>Recipient</td>
+                    <td><span class="badge badge-blood">A+</span></td>
+                    <td>Dhaka</td>
+                    <td><span class="badge badge-success">Active</span></td>
+                    <td><button class="btn btn-ghost btn-sm">Edit</button></td>
+                  </tr>
+                  <tr>
+                    <td>Sumaiya Haque</td>
+                    <td>Donor</td>
+                    <td><span class="badge badge-blood">O−</span></td>
+                    <td>Chittagong</td>
+                    <td><span class="badge badge-warning">Pending Verify</span></td>
+                    <td><button class="btn btn-ghost btn-sm">Edit</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="dash-grid-2">
+            <div class="dash-panel">
+              <div class="dash-panel__header">
+                <div class="dash-panel__title">Emergency Requests</div>
+                <a href="emergency.html" class="btn btn-outline btn-sm">View All</a>
+              </div>
+              <div class="dash-panel__body">
+                <table class="dash-table">
+                  <thead><tr><th>ID</th><th>Type</th><th>Urgency</th><th>Status</th></tr></thead>
+                  <tbody>
+                    <tr><td>#ER-0042</td><td><span class="badge badge-blood">A+</span></td><td><span class="badge badge-warning">High</span></td><td><span class="badge badge-success">Matched</span></td></tr>
+                    <tr><td>#ER-0041</td><td><span class="badge badge-blood">A+</span></td><td><span class="badge" style="background:rgba(220,38,38,0.12);color:var(--crimson-light);border:1px solid rgba(220,38,38,0.3);">Critical</span></td><td><span class="badge badge-warning">Pending</span></td></tr>
+                    <tr><td>#ER-0040</td><td><span class="badge badge-blood">B−</span></td><td><span class="badge badge-warning">Medium</span></td><td><span class="badge badge-success">Fulfilled</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="dash-panel">
+              <div class="dash-panel__header">
+                <div class="dash-panel__title">Blood Bank Inventory</div>
+                <a href="blood-banks.html" class="btn btn-outline btn-sm">Manage</a>
+              </div>
+              <div class="dash-panel__body">
+                <div style="margin-bottom: 1rem;">
+                  <div class="flex-between" style="margin-bottom: 0.3rem;"><span style="font-size:0.875rem;">A+</span><span class="badge badge-success">High</span></div>
+                  <div class="progress-bar"><div class="progress-bar__fill" style="width: 80%; background: var(--success);"></div></div>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                  <div class="flex-between" style="margin-bottom: 0.3rem;"><span style="font-size:0.875rem;">O−</span><span class="badge badge-warning">Low</span></div>
+                  <div class="progress-bar"><div class="progress-bar__fill" style="width: 18%;"></div></div>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                  <div class="flex-between" style="margin-bottom: 0.3rem;"><span style="font-size:0.875rem;">B+</span><span class="badge badge-success">Normal</span></div>
+                  <div class="progress-bar"><div class="progress-bar__fill" style="width: 55%; background: var(--warning);"></div></div>
+                </div>
+                <div>
+                  <div class="flex-between" style="margin-bottom: 0.3rem;"><span style="font-size:0.875rem;">AB−</span><span class="badge badge-warning">Critical</span></div>
+                  <div class="progress-bar"><div class="progress-bar__fill" style="width: 8%;"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+
+  <script src="js/main.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
