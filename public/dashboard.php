@@ -1,3 +1,14 @@
+<?php
+session_start();
+if (!isset($_SESSION['userID'])) {
+    header('Location: login.html');
+    exit;
+}
+$userID    = $_SESSION['userID'];
+$userRole  = $_SESSION['role'];
+$firstName = $_SESSION['firstName'];
+$fullName  = $_SESSION['name'] ?? $firstName;
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -360,6 +371,14 @@
 </head>
 <body>
 
+  <!-- Pass server-side session data to JS -->
+  <script>
+    const USER_ID        = '<?= htmlspecialchars($userID,    ENT_QUOTES) ?>';
+    const USER_ROLE      = '<?= htmlspecialchars($userRole,  ENT_QUOTES) ?>';
+    const USER_FIRSTNAME = '<?= htmlspecialchars($firstName, ENT_QUOTES) ?>';
+    const USER_NAME      = '<?= htmlspecialchars($fullName,  ENT_QUOTES) ?>';
+  </script>
+
   <!-- Navbar -->
   <nav class="navbar scrolled">
     <div class="navbar__inner">
@@ -373,28 +392,30 @@
         <li><a href="campaigns.html">Campaigns</a></li>
         <li><a href="emergency.html">Emergency</a></li>
       </ul>
-      <a href="login.html" class="btn btn-outline btn-sm navbar__cta">Logout</a>
+      <a href="logout.php" class="btn btn-outline btn-sm navbar__cta">Logout</a>
     </div>
   </nav>
 
   <div class="dashboard-layout">
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
-      <div class="sidebar__avatar" id="avatarInitials">JD</div>
-      <div class="sidebar__name" id="sidebarName">John Doe</div>
+      <div class="sidebar__avatar" id="avatarInitials">
+        <?= htmlspecialchars(strtoupper(substr($firstName, 0, 1) . (strpos($fullName, ' ') !== false ? substr(strrchr($fullName, ' '), 1, 1) : '')), ENT_QUOTES) ?>
+      </div>
+      <div class="sidebar__name" id="sidebarName"><?= htmlspecialchars($fullName, ENT_QUOTES) ?></div>
       <div class="sidebar__role-badge">
-        <span class="badge badge-blood" id="sidebarRole">Donor</span>
+        <span class="badge badge-blood" id="sidebarRole"><?= htmlspecialchars(ucfirst($userRole), ENT_QUOTES) ?></span>
       </div>
       <div class="sidebar__divider"></div>
 
-      <div class="sidebar__nav-label">Overview</div>
+      <div class="sidebar__nav-label">Navigation</div>
       <nav class="sidebar__nav" id="sidebarNav">
         <!-- populated by JS -->
       </nav>
 
       <div class="sidebar__bottom">
         <div class="sidebar__divider"></div>
-        <a href="login.html" class="sidebar__logout">
+        <a href="logout.php" class="sidebar__logout">
           <span class="nav-icon">🚪</span> Logout
         </a>
       </div>
@@ -404,8 +425,8 @@
     <div class="dashboard-main">
       <!-- Role demo switcher -->
       <div class="role-demo-bar">
-        <span>Demo View:</span>
-        <button class="role-btn active" data-role="donor">Donor</button>
+        <span>View:</span>
+        <button class="role-btn" data-role="donor">Donor</button>
         <button class="role-btn" data-role="recipient">Recipient</button>
         <button class="role-btn" data-role="admin">Admin</button>
       </div>
@@ -413,34 +434,34 @@
       <div class="dashboard-content">
 
         <!-- ── DONOR VIEW ───────────────────────────────────── -->
-        <div class="role-view active" id="view-donor">
-          <h2 style="margin-bottom: 0.25rem;">Welcome back, <span class="text-crimson">John</span> 👋</h2>
-          <p style="margin-bottom: 1.75rem;">You've saved 3 lives this year. Keep it up!</p>
+        <div class="role-view" id="view-donor">
+          <h2 style="margin-bottom: 0.25rem;">Welcome back, <span class="text-crimson" id="donorWelcomeName">—</span> 👋</h2>
+          <p style="margin-bottom: 1.75rem;" id="donorSubtext">Loading your stats...</p>
 
           <div class="dash-stats">
             <div class="dash-stat-card">
               <div class="dash-stat-card__icon">🩸</div>
               <div class="dash-stat-card__label">Total Donations</div>
-              <div class="dash-stat-card__value">7</div>
-              <div class="dash-stat-card__sub">+1 this month</div>
+              <div class="dash-stat-card__value" id="statTotalDonate">—</div>
+              <div class="dash-stat-card__sub" id="statDonateSub">times donated</div>
             </div>
             <div class="dash-stat-card">
               <div class="dash-stat-card__icon">⭐</div>
               <div class="dash-stat-card__label">Points Earned</div>
-              <div class="dash-stat-card__value">350</div>
-              <div class="dash-stat-card__sub">Top 12% globally</div>
+              <div class="dash-stat-card__value" id="statPoints">—</div>
+              <div class="dash-stat-card__sub" id="statPointsSub">reward points</div>
             </div>
             <div class="dash-stat-card">
               <div class="dash-stat-card__icon">🏆</div>
               <div class="dash-stat-card__label">Global Rank</div>
-              <div class="dash-stat-card__value">#42</div>
-              <div class="dash-stat-card__sub">Out of 12,480</div>
+              <div class="dash-stat-card__value" id="statRank">—</div>
+              <div class="dash-stat-card__sub">leaderboard position</div>
             </div>
             <div class="dash-stat-card">
               <div class="dash-stat-card__icon">📅</div>
               <div class="dash-stat-card__label">Next Eligible</div>
-              <div class="dash-stat-card__value">Jun 12</div>
-              <div class="dash-stat-card__sub">47 days away</div>
+              <div class="dash-stat-card__value" id="statNextEligible">—</div>
+              <div class="dash-stat-card__sub" id="statEligibleSub">next donation date</div>
             </div>
           </div>
 
@@ -449,7 +470,7 @@
             <div class="dash-panel">
               <div class="dash-panel__header">
                 <div class="dash-panel__title">Donation History</div>
-                <a href="#" class="btn btn-ghost btn-sm">View All</a>
+                <a href="donation-history.html" class="btn btn-ghost btn-sm">View All</a>
               </div>
               <div class="dash-panel__body">
                 <table class="dash-table">
@@ -461,25 +482,8 @@
                       <th>Status</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    <tr>
-                      <td>2026-04-10</td>
-                      <td>Dhaka Medical</td>
-                      <td>1</td>
-                      <td><span class="badge badge-success">Completed</span></td>
-                    </tr>
-                    <tr>
-                      <td>2026-01-22</td>
-                      <td>Square Hospital</td>
-                      <td>1</td>
-                      <td><span class="badge badge-success">Completed</span></td>
-                    </tr>
-                    <tr>
-                      <td>2025-09-05</td>
-                      <td>Labaid Hospital</td>
-                      <td>1</td>
-                      <td><span class="badge badge-success">Completed</span></td>
-                    </tr>
+                  <tbody id="donationHistoryBody">
+                    <tr><td colspan="4" style="text-align:center;color:var(--white-muted);">Loading...</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -489,94 +493,42 @@
             <div class="dash-panel">
               <div class="dash-panel__header">
                 <div class="dash-panel__title">Health Profile</div>
-                <a href="#" class="btn btn-outline btn-sm">Edit</a>
+                <a href="check-eligibility.html" class="btn btn-outline btn-sm">Check Eligibility</a>
               </div>
               <div class="dash-panel__body">
                 <table class="dash-table">
-                  <tr><td>Blood Group</td><td><span class="badge badge-blood">B+</span></td></tr>
-                  <tr><td>Weight</td><td>72 kg</td></tr>
-                  <tr><td>Hemoglobin</td><td>14.2 g/dL</td></tr>
-                  <tr><td>Eligibility</td><td><span class="badge badge-success">Eligible</span></td></tr>
-                  <tr><td>Diseases</td><td>None recorded</td></tr>
+                  <tbody id="healthTableBody">
+                    <tr><td colspan="2" style="text-align:center;color:var(--white-muted);">Loading...</td></tr>
+                  </tbody>
                 </table>
+                <div id="healthActions" style="margin-top:1rem;display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
+                  <button id="editHealthBtn" class="btn btn-outline btn-sm">✏️ Edit Profile</button>
+                  <button id="saveHealthBtn" class="btn btn-primary btn-sm" style="display:none;">💾 Save</button>
+                  <button id="cancelHealthBtn" class="btn btn-ghost btn-sm" style="display:none;">Cancel</button>
+                  <span id="healthSaveMsg" style="font-size:0.85rem;margin-left:0.5rem;"></span>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- Leaderboard + Notifications -->
-          <div class="dash-grid-2">
+          <div class="dash-grid-2" id="leaderboard">
             <div class="dash-panel">
               <div class="dash-panel__header">
                 <div class="dash-panel__title">🏆 Leaderboard</div>
-                <span class="badge badge-blood">Your rank: #42</span>
+                <span class="badge badge-blood" id="myRankBadge">Your rank: —</span>
               </div>
               <div class="dash-panel__body" id="leaderboardBody">
-                <div class="leaderboard-item">
-                  <div class="leaderboard-item__rank">🥇</div>
-                  <div class="leaderboard-item__avatar">RK</div>
-                  <div class="leaderboard-item__info">
-                    <div class="leaderboard-item__name">Rafiq K.</div>
-                    <div class="leaderboard-item__meta">A+ · Dhaka · 18 donations</div>
-                  </div>
-                  <div class="leaderboard-item__points">900 pts</div>
-                </div>
-                <div class="leaderboard-item">
-                  <div class="leaderboard-item__rank">🥈</div>
-                  <div class="leaderboard-item__avatar">SH</div>
-                  <div class="leaderboard-item__info">
-                    <div class="leaderboard-item__name">Sumaiya H.</div>
-                    <div class="leaderboard-item__meta">O− · Chittagong · 15 donations</div>
-                  </div>
-                  <div class="leaderboard-item__points">750 pts</div>
-                </div>
-                <div class="leaderboard-item">
-                  <div class="leaderboard-item__rank">🥉</div>
-                  <div class="leaderboard-item__avatar">MI</div>
-                  <div class="leaderboard-item__info">
-                    <div class="leaderboard-item__name">Masud I.</div>
-                    <div class="leaderboard-item__meta">B+ · Sylhet · 13 donations</div>
-                  </div>
-                  <div class="leaderboard-item__points">650 pts</div>
-                </div>
-                <div class="leaderboard-item" style="background: rgba(220,38,38,0.05); border-radius: 8px; padding: 0.75rem; margin-top: 0.5rem;">
-                  <div class="leaderboard-item__rank" style="color: var(--crimson-light);">#42</div>
-                  <div class="leaderboard-item__avatar" style="background: var(--crimson); color: #fff;">JD</div>
-                  <div class="leaderboard-item__info">
-                    <div class="leaderboard-item__name">You (John Doe)</div>
-                    <div class="leaderboard-item__meta">B+ · Dhaka · 7 donations</div>
-                  </div>
-                  <div class="leaderboard-item__points">350 pts</div>
-                </div>
+                <div style="text-align:center;padding:1rem;color:var(--white-muted);">⏳ Loading...</div>
               </div>
             </div>
 
-            <div class="dash-panel">
+            <div class="dash-panel" id="notifications">
               <div class="dash-panel__header">
                 <div class="dash-panel__title">🔔 Notifications</div>
-                <span class="badge badge-blood">3 new</span>
               </div>
-              <div class="dash-panel__body">
-                <div class="notif-item">
-                  <div class="notif-item__icon">🚨</div>
-                  <div>
-                    <div class="notif-item__text"><strong>Emergency match!</strong> A B+ recipient at Dhaka Medical needs blood urgently.</div>
-                    <div class="notif-item__time">2 hours ago</div>
-                  </div>
-                </div>
-                <div class="notif-item">
-                  <div class="notif-item__icon">🏅</div>
-                  <div>
-                    <div class="notif-item__text"><strong>Reward available!</strong> RedCross Campaign is offering 50 bonus points.</div>
-                    <div class="notif-item__time">1 day ago</div>
-                  </div>
-                </div>
-                <div class="notif-item">
-                  <div class="notif-item__icon">📅</div>
-                  <div>
-                    <div class="notif-item__text">Your next eligible donation date is <strong>June 12, 2026</strong>.</div>
-                    <div class="notif-item__time">3 days ago</div>
-                  </div>
-                </div>
+              <div class="dash-panel__body" id="notificationsBody">
+                <div style="text-align:center;padding:1rem;color:var(--white-muted);">Loading notifications...</div>
               </div>
             </div>
           </div>
@@ -584,33 +536,33 @@
 
         <!-- ── RECIPIENT VIEW ────────────────────────────────── -->
         <div class="role-view" id="view-recipient">
-          <h2 style="margin-bottom: 0.25rem;">Hello, <span class="text-crimson">Ayesha</span> 👋</h2>
+          <h2 style="margin-bottom: 0.25rem;">Hello, <span class="text-crimson" id="recipientWelcomeName">—</span> 👋</h2>
           <p style="margin-bottom: 1.75rem;">Track your blood requests and matched donors below.</p>
 
           <div class="dash-stats">
             <div class="dash-stat-card">
               <div class="dash-stat-card__icon">📋</div>
               <div class="dash-stat-card__label">Active Requests</div>
-              <div class="dash-stat-card__value">2</div>
-              <div class="dash-stat-card__sub">1 urgent</div>
+              <div class="dash-stat-card__value" id="statActiveReqs">—</div>
+              <div class="dash-stat-card__sub">pending &amp; matched</div>
             </div>
             <div class="dash-stat-card">
               <div class="dash-stat-card__icon">✅</div>
               <div class="dash-stat-card__label">Matched Donors</div>
-              <div class="dash-stat-card__value">4</div>
-              <div class="dash-stat-card__sub">Available now</div>
+              <div class="dash-stat-card__value" id="statMatchedDonors">—</div>
+              <div class="dash-stat-card__sub">available now</div>
             </div>
             <div class="dash-stat-card">
               <div class="dash-stat-card__icon">✔️</div>
               <div class="dash-stat-card__label">Fulfilled</div>
-              <div class="dash-stat-card__value">3</div>
-              <div class="dash-stat-card__sub">Total requests</div>
+              <div class="dash-stat-card__value" id="statFulfilled">—</div>
+              <div class="dash-stat-card__sub">total requests</div>
             </div>
             <div class="dash-stat-card">
               <div class="dash-stat-card__icon">🩸</div>
               <div class="dash-stat-card__label">Blood Group</div>
-              <div class="dash-stat-card__value">A+</div>
-              <div class="dash-stat-card__sub">Universal recipient</div>
+              <div class="dash-stat-card__value" id="statRecipBlood">—</div>
+              <div class="dash-stat-card__sub">your blood type</div>
             </div>
           </div>
 
@@ -631,23 +583,8 @@
                     <th>Status</th>
                   </tr>
                 </thead>
-                <tbody>
-                  <tr>
-                    <td>#ER-0042</td>
-                    <td><span class="badge badge-blood">A+</span></td>
-                    <td>2</td>
-                    <td>Dhaka Medical</td>
-                    <td><span class="badge badge-warning">High</span></td>
-                    <td><span class="badge badge-success">Matched</span></td>
-                  </tr>
-                  <tr>
-                    <td>#ER-0041</td>
-                    <td><span class="badge badge-blood">A+</span></td>
-                    <td>1</td>
-                    <td>Square Hospital</td>
-                    <td><span class="badge" style="background:rgba(220,38,38,0.12);color:var(--crimson-light);border:1px solid rgba(220,38,38,0.3);">Critical</span></td>
-                    <td><span class="badge" style="background:rgba(245,158,11,0.12);color:var(--warning);border:1px solid rgba(245,158,11,0.3);">Pending</span></td>
-                  </tr>
+                <tbody id="recipRequestsBody">
+                  <tr><td colspan="6" style="text-align:center;color:var(--white-muted);">Loading...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -655,30 +592,12 @@
 
           <div class="dash-panel">
             <div class="dash-panel__header">
-              <div class="dash-panel__title">Matched Donors</div>
+              <div class="dash-panel__title">Quick Links</div>
             </div>
-            <div class="dash-panel__body">
-              <table class="dash-table">
-                <thead>
-                  <tr><th>Donor</th><th>Blood Type</th><th>Distance</th><th>Available</th><th>Action</th></tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>R. K. (masked)</td>
-                    <td><span class="badge badge-blood">A+</span></td>
-                    <td>1.2 km</td>
-                    <td><span class="badge badge-success">Yes</span></td>
-                    <td><button class="btn btn-primary btn-sm">Contact</button></td>
-                  </tr>
-                  <tr>
-                    <td>S. M. (masked)</td>
-                    <td><span class="badge badge-blood">A+</span></td>
-                    <td>3.4 km</td>
-                    <td><span class="badge badge-success">Yes</span></td>
-                    <td><button class="btn btn-primary btn-sm">Contact</button></td>
-                  </tr>
-                </tbody>
-              </table>
+            <div class="dash-panel__body" style="display:flex;gap:1rem;flex-wrap:wrap;">
+              <a href="find-donor.html" class="btn btn-outline">🔍 Find Donors</a>
+              <a href="blood-banks.html" class="btn btn-outline">🏥 Blood Banks</a>
+              <a href="request-status.html" class="btn btn-outline">📋 Request Status</a>
             </div>
           </div>
         </div>
@@ -692,26 +611,26 @@
             <div class="dash-stat-card">
               <div class="dash-stat-card__icon">👥</div>
               <div class="dash-stat-card__label">Total Users</div>
-              <div class="dash-stat-card__value">12,480</div>
-              <div class="dash-stat-card__sub">+84 this week</div>
+              <div class="dash-stat-card__value" id="statTotalUsers">—</div>
+              <div class="dash-stat-card__sub">registered</div>
             </div>
             <div class="dash-stat-card">
               <div class="dash-stat-card__icon">🚨</div>
               <div class="dash-stat-card__label">Open Requests</div>
-              <div class="dash-stat-card__value">34</div>
-              <div class="dash-stat-card__sub">8 critical</div>
+              <div class="dash-stat-card__value" id="statOpenReqs">—</div>
+              <div class="dash-stat-card__sub" id="statOpenReqsSub">active</div>
             </div>
             <div class="dash-stat-card">
               <div class="dash-stat-card__icon">🏥</div>
               <div class="dash-stat-card__label">Blood Banks</div>
-              <div class="dash-stat-card__value">86</div>
-              <div class="dash-stat-card__sub">3 low stock</div>
+              <div class="dash-stat-card__value" id="statBanks">—</div>
+              <div class="dash-stat-card__sub" id="statBanksSub">registered</div>
             </div>
             <div class="dash-stat-card">
               <div class="dash-stat-card__icon">📣</div>
               <div class="dash-stat-card__label">Active Campaigns</div>
-              <div class="dash-stat-card__value">12</div>
-              <div class="dash-stat-card__sub">2 ending soon</div>
+              <div class="dash-stat-card__value" id="statCampaigns">—</div>
+              <div class="dash-stat-card__sub">running now</div>
             </div>
           </div>
 
@@ -728,31 +647,8 @@
                 <thead>
                   <tr><th>Name</th><th>Role</th><th>Blood Type</th><th>Location</th><th>Status</th><th>Actions</th></tr>
                 </thead>
-                <tbody>
-                  <tr>
-                    <td>Rafiq Karim</td>
-                    <td>Donor</td>
-                    <td><span class="badge badge-blood">A+</span></td>
-                    <td>Dhaka</td>
-                    <td><span class="badge badge-success">Active</span></td>
-                    <td><button class="btn btn-ghost btn-sm">Edit</button></td>
-                  </tr>
-                  <tr>
-                    <td>Ayesha Begum</td>
-                    <td>Recipient</td>
-                    <td><span class="badge badge-blood">A+</span></td>
-                    <td>Dhaka</td>
-                    <td><span class="badge badge-success">Active</span></td>
-                    <td><button class="btn btn-ghost btn-sm">Edit</button></td>
-                  </tr>
-                  <tr>
-                    <td>Sumaiya Haque</td>
-                    <td>Donor</td>
-                    <td><span class="badge badge-blood">O−</span></td>
-                    <td>Chittagong</td>
-                    <td><span class="badge badge-warning">Pending Verify</span></td>
-                    <td><button class="btn btn-ghost btn-sm">Edit</button></td>
-                  </tr>
+                <tbody id="adminUsersBody">
+                  <tr><td colspan="6" style="text-align:center;color:var(--white-muted);">Loading users...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -767,36 +663,21 @@
               <div class="dash-panel__body">
                 <table class="dash-table">
                   <thead><tr><th>ID</th><th>Type</th><th>Urgency</th><th>Status</th></tr></thead>
-                  <tbody>
-                    <tr><td>#ER-0042</td><td><span class="badge badge-blood">A+</span></td><td><span class="badge badge-warning">High</span></td><td><span class="badge badge-success">Matched</span></td></tr>
-                    <tr><td>#ER-0041</td><td><span class="badge badge-blood">A+</span></td><td><span class="badge" style="background:rgba(220,38,38,0.12);color:var(--crimson-light);border:1px solid rgba(220,38,38,0.3);">Critical</span></td><td><span class="badge badge-warning">Pending</span></td></tr>
-                    <tr><td>#ER-0040</td><td><span class="badge badge-blood">B−</span></td><td><span class="badge badge-warning">Medium</span></td><td><span class="badge badge-success">Fulfilled</span></td></tr>
+                  <tbody id="adminReqsBody">
+                    <tr><td colspan="4" style="text-align:center;color:var(--white-muted);">Loading...</td></tr>
                   </tbody>
                 </table>
               </div>
             </div>
             <div class="dash-panel">
               <div class="dash-panel__header">
-                <div class="dash-panel__title">Blood Bank Inventory</div>
-                <a href="blood-banks.html" class="btn btn-outline btn-sm">Manage</a>
+                <div class="dash-panel__title">Quick Links</div>
               </div>
-              <div class="dash-panel__body">
-                <div style="margin-bottom: 1rem;">
-                  <div class="flex-between" style="margin-bottom: 0.3rem;"><span style="font-size:0.875rem;">A+</span><span class="badge badge-success">High</span></div>
-                  <div class="progress-bar"><div class="progress-bar__fill" style="width: 80%; background: var(--success);"></div></div>
-                </div>
-                <div style="margin-bottom: 1rem;">
-                  <div class="flex-between" style="margin-bottom: 0.3rem;"><span style="font-size:0.875rem;">O−</span><span class="badge badge-warning">Low</span></div>
-                  <div class="progress-bar"><div class="progress-bar__fill" style="width: 18%;"></div></div>
-                </div>
-                <div style="margin-bottom: 1rem;">
-                  <div class="flex-between" style="margin-bottom: 0.3rem;"><span style="font-size:0.875rem;">B+</span><span class="badge badge-success">Normal</span></div>
-                  <div class="progress-bar"><div class="progress-bar__fill" style="width: 55%; background: var(--warning);"></div></div>
-                </div>
-                <div>
-                  <div class="flex-between" style="margin-bottom: 0.3rem;"><span style="font-size:0.875rem;">AB−</span><span class="badge badge-warning">Critical</span></div>
-                  <div class="progress-bar"><div class="progress-bar__fill" style="width: 8%;"></div></div>
-                </div>
+              <div class="dash-panel__body" style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+                <a href="blood-banks.html" class="btn btn-outline btn-sm">🏥 Blood Banks</a>
+                <a href="campaigns.html" class="btn btn-outline btn-sm">📣 Campaigns</a>
+                <a href="feedback.html" class="btn btn-outline btn-sm">⭐ Feedback</a>
+                <a href="find-donor.html" class="btn btn-outline btn-sm">🔍 Find Donors</a>
               </div>
             </div>
           </div>

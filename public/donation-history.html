@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Donation History — BloodNet</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .history-section { padding: 5rem 0 4rem; }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      margin-bottom: 2.5rem;
+    }
+    .stat-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .stat-box__value { font-family: var(--font-display); font-size: 2.5rem; font-weight: 800; color: var(--crimson-light); }
+    .stat-box__label { font-size: 0.85rem; color: var(--white-muted); margin-top: 0.35rem; }
+    .history-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .history-panel__header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border-glass);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .history-panel__title { font-family: var(--font-display); font-size: 1.05rem; font-weight: 700; }
+    .history-panel__body { padding: 1.5rem; }
+    .history-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .history-table th {
+      text-align: left;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--white-muted);
+      padding: 0 0 0.75rem;
+      border-bottom: 1px solid var(--border-glass);
+    }
+    .history-table td {
+      padding: 0.85rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      color: var(--white-dim);
+    }
+    .history-table tr:last-child td { border-bottom: none; }
+    .history-table td:first-child { color: var(--white); font-weight: 500; }
+    .loading-msg { text-align:center; padding:3rem; color:var(--white-muted); }
+    .error-msg { text-align:center; padding:2rem; color:var(--crimson-light); }
+    @media (max-width: 768px) { .summary-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar scrolled">
+    <div class="navbar__inner">
+      <a href="index.html" class="navbar__logo">
+        <div class="navbar__logo-icon">🩸</div>
+        BloodNet
+      </a>
+      <ul class="navbar__links">
+        <li><a href="find-donor.html">Find Donor</a></li>
+        <li><a href="blood-banks.html">Blood Banks</a></li>
+        <li><a href="campaigns.html">Campaigns</a></li>
+        <li><a href="emergency.html">Emergency</a></li>
+      </ul>
+      <a href="dashboard.php" class="btn btn-outline btn-sm navbar__cta">Dashboard</a>
+    </div>
+  </nav>
+
+  <section class="history-section">
+    <div class="container">
+      <div class="text-center mb-3">
+        <span class="section-label">Your Contributions</span>
+        <h2 class="section-title">Donation History</h2>
+        <div class="divider divider-center"></div>
+      </div>
+
+      <div id="loadingMsg" class="loading-msg">⏳ Loading your donation history...</div>
+      <div id="errorMsg"   class="error-msg" style="display:none;"></div>
+
+      <div id="historyContent" style="display:none;">
+        <div class="summary-grid">
+          <div class="stat-box">
+            <div class="stat-box__value" id="summaryTotal">0</div>
+            <div class="stat-box__label">Total Donations</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-box__value" id="summaryUnits">0</div>
+            <div class="stat-box__label">Total Units Donated</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-box__value" id="summaryBlood">—</div>
+            <div class="stat-box__label">Blood Type</div>
+          </div>
+        </div>
+
+        <div class="history-panel">
+          <div class="history-panel__header">
+            <div class="history-panel__title">🩸 All Donations</div>
+            <span id="donorNameBadge" class="badge badge-blood"></span>
+          </div>
+          <div class="history-panel__body">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Hospital / Center</th>
+                  <th>Units</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="historyTableBody">
+                <!-- populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="margin-top:1.5rem;text-align:center;">
+          <a href="dashboard.php" class="btn btn-outline">← Back to Dashboard</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__bottom">
+        <span>© 2026 BloodNet — Smart Blood &amp; Emergency Donor Network</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const BACKEND = 'http://localhost/smart-blood-donor/backend';
+    const userID  = sessionStorage.getItem('userID') || '';
+
+    async function loadHistory() {
+      const loadEl    = document.getElementById('loadingMsg');
+      const errEl     = document.getElementById('errorMsg');
+      const contentEl = document.getElementById('historyContent');
+
+      if (!userID) {
+        loadEl.style.display = 'none';
+        errEl.style.display  = 'block';
+        errEl.textContent    = 'Please log in to view your donation history.';
+        return;
+      }
+
+      try {
+        const res  = await fetch(`${BACKEND}/api/donation_history.php?userID=${encodeURIComponent(userID)}`);
+        const data = await res.json();
+
+        if (data.error) {
+          loadEl.style.display = 'none';
+          errEl.style.display  = 'block';
+          errEl.textContent    = data.error === 'Donor not found'
+            ? 'Donation history is only available for registered donors.'
+            : data.error;
+          return;
+        }
+
+        loadEl.style.display    = 'none';
+        contentEl.style.display = 'block';
+
+        document.getElementById('summaryTotal').textContent = data.totalDonate || 0;
+        document.getElementById('summaryUnits').textContent = data.totalUnits  || 0;
+        document.getElementById('summaryBlood').textContent = data.bloodType   || '—';
+        document.getElementById('donorNameBadge').textContent = data.name      || '';
+
+        const tbody = document.getElementById('historyTableBody');
+        if (!data.donations || data.donations.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--white-muted);">No donations recorded yet.</td></tr>';
+        } else {
+          tbody.innerHTML = data.donations.map(d => `
+            <tr>
+              <td>${d.lastDonated || '—'}</td>
+              <td>${d.hospitalCenter || '—'}</td>
+              <td>${d.unitsDonated}</td>
+              <td><span class="badge ${d.status === 'completed' ? 'badge-success' : 'badge-warning'}">${d.status}</span></td>
+            </tr>
+          `).join('');
+        }
+      } catch {
+        loadEl.style.display = 'none';
+        errEl.style.display  = 'block';
+        errEl.textContent    = '⚠️ Could not connect to backend. Make sure XAMPP is running.';
+      }
+    }
+
+    loadHistory();
+  </script>
+</body>
+</html>

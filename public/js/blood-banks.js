@@ -1,72 +1,48 @@
-/* ── Sample blood bank data ─────────────────────────────────── */
-const banksData = [
-  {
-    id: 1, name: 'Dhaka Medical College Blood Bank', location: 'Dhaka, Bakshibazar',
-    open: true,
-    inventory: [
-      { type:'A+',  units:24, max:40 }, { type:'A−',  units:6,  max:20 },
-      { type:'B+',  units:18, max:40 }, { type:'B−',  units:3,  max:20 },
-      { type:'AB+', units:10, max:20 }, { type:'AB−', units:2,  max:10 },
-      { type:'O+',  units:30, max:40 }, { type:'O−',  units:8,  max:20 },
-    ],
-    updated: '2026-04-25 08:00',
-  },
-  {
-    id: 2, name: 'Square Hospital Blood Bank', location: 'Dhaka, Panthapath',
-    open: true,
-    inventory: [
-      { type:'A+',  units:12, max:40 }, { type:'A−',  units:4,  max:20 },
-      { type:'B+',  units:20, max:40 }, { type:'B−',  units:1,  max:20 },
-      { type:'AB+', units:5,  max:20 }, { type:'AB−', units:0,  max:10 },
-      { type:'O+',  units:22, max:40 }, { type:'O−',  units:5,  max:20 },
-    ],
-    updated: '2026-04-25 07:30',
-  },
-  {
-    id: 3, name: 'Chittagong General Hospital', location: 'Chittagong, Anderkilla',
-    open: true,
-    inventory: [
-      { type:'A+',  units:8,  max:40 }, { type:'A−',  units:2,  max:20 },
-      { type:'B+',  units:15, max:40 }, { type:'B−',  units:6,  max:20 },
-      { type:'AB+', units:3,  max:20 }, { type:'AB−', units:1,  max:10 },
-      { type:'O+',  units:12, max:40 }, { type:'O−',  units:4,  max:20 },
-    ],
-    updated: '2026-04-24 18:00',
-  },
-  {
-    id: 4, name: 'MAG Osmani Medical College Blood Bank', location: 'Sylhet, Sylhet Sadar',
-    open: false,
-    inventory: [
-      { type:'A+',  units:16, max:40 }, { type:'A−',  units:5,  max:20 },
-      { type:'B+',  units:9,  max:40 }, { type:'B−',  units:2,  max:20 },
-      { type:'AB+', units:7,  max:20 }, { type:'AB−', units:0,  max:10 },
-      { type:'O+',  units:18, max:40 }, { type:'O−',  units:3,  max:20 },
-    ],
-    updated: '2026-04-24 20:00',
-  },
-  {
-    id: 5, name: 'Rajshahi Medical College Blood Bank', location: 'Rajshahi, Boalia',
-    open: true,
-    inventory: [
-      { type:'A+',  units:20, max:40 }, { type:'A−',  units:8,  max:20 },
-      { type:'B+',  units:14, max:40 }, { type:'B−',  units:4,  max:20 },
-      { type:'AB+', units:6,  max:20 }, { type:'AB−', units:3,  max:10 },
-      { type:'O+',  units:25, max:40 }, { type:'O−',  units:9,  max:20 },
-    ],
-    updated: '2026-04-25 09:00',
-  },
-  {
-    id: 6, name: 'Khulna Medical College Blood Bank', location: 'Khulna, KDA Avenue',
-    open: true,
-    inventory: [
-      { type:'A+',  units:10, max:40 }, { type:'A−',  units:3,  max:20 },
-      { type:'B+',  units:7,  max:40 }, { type:'B−',  units:0,  max:20 },
-      { type:'AB+', units:4,  max:20 }, { type:'AB−', units:1,  max:10 },
-      { type:'O+',  units:14, max:40 }, { type:'O−',  units:2,  max:20 },
-    ],
-    updated: '2026-04-25 06:45',
-  },
-];
+const BACKEND = 'http://localhost/smart-blood-donor/backend';
+
+let banksData = [];
+
+/* ── Load blood banks from backend ─────────────────────────── */
+async function loadBanks() {
+  const grid = document.getElementById('banksGrid');
+  grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem 0;color:var(--white-muted);">
+    <div style="font-size:2rem;margin-bottom:0.5rem;">⏳</div>Loading blood banks...</div>`;
+
+  try {
+    const res  = await fetch(`${BACKEND}/api/blood_inventory.php`);
+    const data = await res.json();
+
+    if (data.banks && data.banks.length > 0) {
+      // Transform backend format to match the render function's expected shape
+      banksData = data.banks.map(b => ({
+        id:       b.bankID,
+        name:     b.bankName,
+        location: b.location,
+        city:     b.city,
+        open:     b.isOpen,
+        inventory: b.inventory.map(inv => ({
+          type:       inv.bloodType,
+          units:      inv.unitsAvailable,
+          max:        inv.maxCapacity,
+          critical:   inv.isCritical,
+          flags:      inv.flags,
+          expiryDate: inv.expiryDate,
+        })),
+        updated: data.checkedOn,
+      }));
+      renderBanks(banksData);
+    } else {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem 0;color:var(--white-muted);">
+        <div style="font-size:3rem;margin-bottom:1rem;">🏥</div>
+        <h3>No blood banks found</h3><p>Run schema.sql to seed sample data.</p></div>`;
+    }
+  } catch {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem 0;color:var(--white-muted);">
+      <div style="font-size:3rem;margin-bottom:1rem;">⚠️</div>
+      <h3>Could not load blood banks</h3>
+      <p>Make sure the PHP backend is running (XAMPP / PHP server).</p></div>`;
+  }
+}
 
 function levelClass(units, max) {
   const pct = units / max;
@@ -110,7 +86,7 @@ function renderBanks(banks) {
         <div class="inventory-grid">
           ${b.inventory.map(inv => `
             <div class="inv-item">
-              <div class="inv-item__type">${inv.type}</div>
+              <div class="inv-item__type">${inv.type}${inv.critical ? ' ⚠️' : ''}</div>
               <div class="inv-item__units">${inv.units} units</div>
               <div class="inv-item__bar">
                 <div class="inv-item__bar-fill ${levelClass(inv.units, inv.max)}" style="width:${levelWidth(inv.units, inv.max)};"></div>
@@ -141,10 +117,9 @@ function applyBankFilter() {
 
   const results = banksData.filter(b => {
     if (name && !b.name.toLowerCase().includes(name)) return false;
-    if (area && !b.location.toLowerCase().includes(area)) return false;
+    if (area && !b.location.toLowerCase().includes(area) && !b.city.toLowerCase().includes(area)) return false;
     if (blood) {
-      const normalised = blood.replace('−', '-');
-      const found = b.inventory.find(i => i.type.replace('−','-') === normalised && i.units > 0);
+      const found = b.inventory.find(i => i.type.replace('−', '-') === blood.replace('−', '-') && i.units > 0);
       if (!found) return false;
     }
     return true;
@@ -161,4 +136,4 @@ document.getElementById('bankSearchBtn').addEventListener('click', applyBankFilt
 });
 document.getElementById('filterBloodBank')?.addEventListener('change', applyBankFilter);
 
-renderBanks(banksData);
+loadBanks();

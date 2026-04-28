@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Check Eligibility — BloodNet</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .eligibility-section { padding: 5rem 0 4rem; }
+    .eligibility-card {
+      max-width: 640px;
+      margin: 0 auto;
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .eligibility-card__header {
+      padding: 2rem;
+      border-bottom: 1px solid var(--border-glass);
+      text-align: center;
+    }
+    .eligibility-card__body { padding: 2rem; }
+    .eligibility-result {
+      display: none;
+    }
+    .eligibility-result.show { display: block; }
+    .eligibility-status {
+      text-align: center;
+      padding: 1.5rem;
+      border-radius: var(--radius);
+      margin-bottom: 1.5rem;
+    }
+    .eligibility-status.eligible   { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); }
+    .eligibility-status.ineligible { background: rgba(220,38,38,0.1);  border: 1px solid rgba(220,38,38,0.3); }
+    .eligibility-status__icon { font-size: 3rem; margin-bottom: 0.5rem; }
+    .eligibility-status__label { font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; }
+    .reason-list { list-style: none; margin: 1rem 0; }
+    .reason-list li { padding: 0.5rem 0; color: var(--crimson-light); font-size: 0.9rem; }
+    .reason-list li::before { content: '⚠️ '; }
+    .info-table { width: 100%; border-collapse: collapse; }
+    .info-table td { padding: 0.6rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.875rem; color: var(--white-dim); }
+    .info-table td:first-child { color: var(--white); font-weight: 500; }
+    .info-table tr:last-child td { border-bottom: none; }
+    .loading-msg { text-align: center; padding: 2rem; color: var(--white-muted); }
+    .error-msg   { text-align: center; padding: 2rem; color: var(--crimson-light); }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar scrolled">
+    <div class="navbar__inner">
+      <a href="index.html" class="navbar__logo">
+        <div class="navbar__logo-icon">🩸</div>
+        BloodNet
+      </a>
+      <ul class="navbar__links">
+        <li><a href="find-donor.html">Find Donor</a></li>
+        <li><a href="blood-banks.html">Blood Banks</a></li>
+        <li><a href="campaigns.html">Campaigns</a></li>
+        <li><a href="emergency.html">Emergency</a></li>
+      </ul>
+      <a href="dashboard.php" class="btn btn-outline btn-sm navbar__cta">Dashboard</a>
+    </div>
+  </nav>
+
+  <section class="eligibility-section">
+    <div class="container">
+      <div class="text-center mb-3">
+        <span class="section-label">Donor Health Check</span>
+        <h2 class="section-title">Check Your Eligibility</h2>
+        <div class="divider divider-center"></div>
+      </div>
+
+      <div class="eligibility-card">
+        <div class="eligibility-card__header">
+          <div style="font-size:3rem; margin-bottom:0.5rem;">💪</div>
+          <h3 style="margin-bottom:0.5rem;">Donation Eligibility Check</h3>
+          <p style="color:var(--white-muted); font-size:0.9rem;">Check if you are currently eligible to donate blood based on your health profile.</p>
+        </div>
+        <div class="eligibility-card__body">
+          <div id="loadingMsg" class="loading-msg">⏳ Checking eligibility...</div>
+          <div id="errorMsg"   class="error-msg" style="display:none;"></div>
+
+          <div id="eligibilityResult" class="eligibility-result">
+            <div id="eligibilityStatus" class="eligibility-status">
+              <div class="eligibility-status__icon" id="eligIcon">—</div>
+              <div class="eligibility-status__label" id="eligLabel">—</div>
+            </div>
+
+            <ul id="reasonList" class="reason-list" style="display:none;"></ul>
+
+            <h4 style="margin-bottom:1rem; font-size:0.9rem; color:var(--white-muted); letter-spacing:0.08em; text-transform:uppercase;">Your Health Profile</h4>
+            <table class="info-table">
+              <tr><td>Name</td><td id="infoName">—</td></tr>
+              <tr><td>Blood Type</td><td id="infoBlood">—</td></tr>
+              <tr><td>Hemoglobin</td><td id="infoHemo">—</td></tr>
+              <tr><td>Weight</td><td id="infoWeight">—</td></tr>
+              <tr><td>Diseases</td><td id="infoDiseases">—</td></tr>
+              <tr><td>Last Donated</td><td id="infoLastDonate">—</td></tr>
+              <tr><td>Next Eligible</td><td id="infoNextEligible">—</td></tr>
+              <tr><td>Total Donations</td><td id="infoTotal">—</td></tr>
+            </table>
+
+            <div style="margin-top:1.5rem; text-align:center;">
+              <a href="dashboard.php" class="btn btn-outline">← Back to Dashboard</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__bottom">
+        <span>© 2026 BloodNet — Smart Blood &amp; Emergency Donor Network</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const BACKEND = 'http://localhost/smart-blood-donor/backend';
+    const userID  = sessionStorage.getItem('userID') || '';
+
+    async function checkEligibility() {
+      const loadEl  = document.getElementById('loadingMsg');
+      const errEl   = document.getElementById('errorMsg');
+      const resultEl= document.getElementById('eligibilityResult');
+
+      if (!userID) {
+        loadEl.style.display = 'none';
+        errEl.style.display  = 'block';
+        errEl.textContent    = 'You must be logged in as a donor to check eligibility.';
+        return;
+      }
+
+      try {
+        const res  = await fetch(`${BACKEND}/api/check_eligibility.php?userID=${encodeURIComponent(userID)}`);
+        const data = await res.json();
+
+        if (data.error) {
+          loadEl.style.display = 'none';
+          errEl.style.display  = 'block';
+          errEl.textContent    = data.error === 'Donor not found'
+            ? 'No donor profile found. This feature is only available for donors.'
+            : data.error;
+          return;
+        }
+
+        loadEl.style.display   = 'none';
+        resultEl.classList.add('show');
+
+        const statusEl = document.getElementById('eligibilityStatus');
+        statusEl.classList.add(data.eligible ? 'eligible' : 'ineligible');
+        document.getElementById('eligIcon').textContent  = data.eligible ? '✅' : '❌';
+        document.getElementById('eligLabel').textContent = data.eligible ? 'You are Eligible!' : 'Not Eligible';
+        document.getElementById('eligLabel').style.color = data.eligible ? 'var(--success)' : 'var(--crimson-light)';
+
+        const reasonList = document.getElementById('reasonList');
+        if (!data.eligible && data.reasons && data.reasons.length) {
+          reasonList.style.display = 'block';
+          reasonList.innerHTML = data.reasons.map(r => `<li>${r}</li>`).join('');
+        }
+
+        document.getElementById('infoName').textContent        = data.name         || '—';
+        document.getElementById('infoBlood').innerHTML         = `<span class="badge badge-blood">${data.bloodType || '—'}</span>`;
+        document.getElementById('infoHemo').textContent        = data.hemoglobinLvl ? data.hemoglobinLvl + ' g/dL' : '—';
+        document.getElementById('infoWeight').textContent      = data.weightKG      ? data.weightKG + ' kg'         : '—';
+        document.getElementById('infoDiseases').textContent    = data.diseases       || 'None recorded';
+        document.getElementById('infoLastDonate').textContent  = data.lastDonated    || 'Never';
+        document.getElementById('infoNextEligible').textContent= data.nextEligible   || 'Now';
+        document.getElementById('infoTotal').textContent       = data.totalDonate    || '0';
+      } catch {
+        loadEl.style.display = 'none';
+        errEl.style.display  = 'block';
+        errEl.textContent    = 'Could not connect to backend. Make sure XAMPP is running.';
+      }
+    }
+
+    checkEligibility();
+  </script>
+</body>
+</html>

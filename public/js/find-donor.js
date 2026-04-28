@@ -1,21 +1,35 @@
-/* ── Sample donor data ─────────────────────────────────────── */
-const donorsData = [
-  { initials:'RK', name:'R. K.',   blood:'A+', city:'Dhaka',      dist:1.2, avail:true,  donations:18, lastDonated:'2026-02-10', urgent:true  },
-  { initials:'SH', name:'S. H.',   blood:'O-', city:'Chittagong', dist:5.8, avail:true,  donations:15, lastDonated:'2026-01-28', urgent:false },
-  { initials:'MI', name:'M. I.',   blood:'B+', city:'Dhaka',      dist:3.1, avail:true,  donations:13, lastDonated:'2025-12-20', urgent:false },
-  { initials:'FN', name:'F. N.',   blood:'AB+',city:'Sylhet',     dist:8.4, avail:false, donations:9,  lastDonated:'2025-11-05', urgent:false },
-  { initials:'ZA', name:'Z. A.',   blood:'O+', city:'Dhaka',      dist:2.7, avail:true,  donations:11, lastDonated:'2026-03-01', urgent:true  },
-  { initials:'NR', name:'N. R.',   blood:'A-', city:'Rajshahi',   dist:12,  avail:true,  donations:7,  lastDonated:'2026-04-02', urgent:false },
-  { initials:'TK', name:'T. K.',   blood:'B-', city:'Dhaka',      dist:0.9, avail:true,  donations:5,  lastDonated:'2025-10-18', urgent:false },
-  { initials:'PM', name:'P. M.',   blood:'AB-',city:'Khulna',     dist:16,  avail:false, donations:4,  lastDonated:'2025-09-22', urgent:false },
-  { initials:'JH', name:'J. H.',   blood:'A+', city:'Dhaka',      dist:4.5, avail:true,  donations:20, lastDonated:'2026-01-14', urgent:true  },
-  { initials:'SB', name:'S. B.',   blood:'B+', city:'Dhaka',      dist:6.2, avail:true,  donations:8,  lastDonated:'2026-02-28', urgent:false },
-  { initials:'RM', name:'R. M.',   blood:'O+', city:'Chittagong', dist:3.9, avail:false, donations:12, lastDonated:'2025-12-10', urgent:false },
-  { initials:'AH', name:'A. H.',   blood:'O-', city:'Dhaka',      dist:7.1, avail:true,  donations:16, lastDonated:'2026-03-15', urgent:true  },
-];
+const BACKEND = 'http://localhost/smart-blood-donor/backend';
 
-let filteredDonors = [...donorsData];
-let emergencyMode = false;
+let donorsData   = [];
+let filteredDonors = [];
+let emergencyMode  = false;
+
+/* ── Load donors from backend ───────────────────────────────── */
+async function loadDonors() {
+  const grid = document.getElementById('donorsGrid');
+  grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem 0;color:var(--white-muted);">
+    <div style="font-size:2rem;margin-bottom:0.5rem;">⏳</div>Loading donors...</div>`;
+
+  try {
+    const res  = await fetch(`${BACKEND}/api/get_donors.php`);
+    const data = await res.json();
+
+    if (data.donors && data.donors.length > 0) {
+      donorsData     = data.donors;
+      filteredDonors = [...donorsData];
+      applyFilters();
+    } else {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem 0;color:var(--white-muted);">
+        <div style="font-size:3rem;margin-bottom:1rem;">🔍</div>
+        <h3>No donors found</h3><p>The database may be empty. Run schema.sql to seed sample data.</p></div>`;
+    }
+  } catch (err) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem 0;color:var(--white-muted);">
+      <div style="font-size:3rem;margin-bottom:1rem;">⚠️</div>
+      <h3>Could not load donors</h3>
+      <p>Make sure the PHP backend is running (XAMPP / PHP server).</p></div>`;
+  }
+}
 
 /* ── Render donors ─────────────────────────────────────────── */
 function renderDonors(donors) {
@@ -33,7 +47,7 @@ function renderDonors(donors) {
   }
 
   grid.innerHTML = donors.map(d => `
-    <div class="donor-card ${emergencyMode && d.urgent ? 'urgent' : ''} reveal">
+    <div class="donor-card ${emergencyMode && !d.avail ? '' : ''} reveal">
       <div class="donor-card__header">
         <div class="donor-avatar">${d.initials}</div>
         <div>
@@ -61,11 +75,11 @@ function renderDonors(donors) {
         </div>
         <div class="donor-info-item">
           <div class="donor-info-item__label">Next Eligible</div>
-          <div class="donor-info-item__value">${nextEligible(d.lastDonated)}</div>
+          <div class="donor-info-item__value">${d.nextEligible}</div>
         </div>
       </div>
       <div class="donor-card__footer">
-        <div class="distance-badge">📍 ${d.dist} km away</div>
+        ${d.globalRank ? `<div class="distance-badge">🏆 Rank #${d.globalRank}</div>` : `<div class="distance-badge">⭐ ${d.points} pts</div>`}
         <button class="btn ${d.avail ? 'btn-primary' : 'btn-outline'} btn-sm"
           ${d.avail ? '' : 'disabled'}>
           ${d.avail ? 'Request Donation' : 'Unavailable'}
@@ -74,19 +88,12 @@ function renderDonors(donors) {
     </div>
   `).join('');
 
-  /* re-observe reveals */
   document.querySelectorAll('.reveal:not(.visible)').forEach(el => {
     const obs = new IntersectionObserver(entries => {
       entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
     }, { threshold: 0.1 });
     obs.observe(el);
   });
-}
-
-function nextEligible(last) {
-  const d = new Date(last);
-  d.setDate(d.getDate() + 56);
-  return d.toISOString().split('T')[0];
 }
 
 /* ── Filter & Sort ─────────────────────────────────────────── */
@@ -98,23 +105,20 @@ function applyFilters() {
 
   let result = donorsData.filter(d => {
     if (blood && d.blood !== blood) return false;
-    if (city && !d.city.toLowerCase().includes(city)) return false;
+    if (city  && !d.city.toLowerCase().includes(city)) return false;
     if (avail !== '' && d.avail !== (avail === '1')) return false;
     if (emergencyMode && !d.avail) return false;
     return true;
   });
 
-  if (sort === 'distance')  result.sort((a,b) => a.dist - b.dist);
-  if (sort === 'donations') result.sort((a,b) => b.donations - a.donations);
-  if (sort === 'recent')    result.sort((a,b) => new Date(b.lastDonated) - new Date(a.lastDonated));
+  if (sort === 'donations') result.sort((a, b) => b.donations - a.donations);
+  if (sort === 'recent')    result.sort((a, b) => new Date(b.lastDonated) - new Date(a.lastDonated));
+  if (sort === 'rank')      result.sort((a, b) => (a.globalRank || 9999) - (b.globalRank || 9999));
 
-  /* badge filters */
   const bf = document.getElementById('activeBloodFilter');
   const cf = document.getElementById('activeCityFilter');
-  bf.style.display = blood ? 'inline-flex' : 'none';
-  bf.textContent = blood;
-  cf.style.display = city ? 'inline-flex' : 'none';
-  cf.textContent = city;
+  if (bf) { bf.style.display = blood ? 'inline-flex' : 'none'; bf.textContent = blood; }
+  if (cf) { cf.style.display = city  ? 'inline-flex' : 'none'; cf.textContent = city; }
 
   filteredDonors = result;
   renderDonors(result);
@@ -137,4 +141,4 @@ document.getElementById('emergencyToggle')?.addEventListener('change', e => {
 });
 
 /* ── Init ──────────────────────────────────────────────────── */
-renderDonors(donorsData);
+loadDonors();

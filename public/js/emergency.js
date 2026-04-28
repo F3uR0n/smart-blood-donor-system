@@ -1,40 +1,20 @@
-/* ── Static compatible donor pool (for match preview) ──────── */
-const matchPool = [
-  { initials:'RK', name:'R. K.',   blood:['A+','AB+','B+','O+'],    city:'Dhaka',      dist:1.2, avail:true  },
-  { initials:'ZA', name:'Z. A.',   blood:['A+','A-','B+','B-','AB+','AB-','O+','O-'], city:'Dhaka',  dist:2.7, avail:true  },
-  { initials:'JH', name:'J. H.',   blood:['A+','AB+','B+','O+'],    city:'Dhaka',      dist:4.5, avail:true  },
-  { initials:'SH', name:'S. H.',   blood:['A+','A-','B+','B-','AB+','AB-','O+','O-'], city:'Chittagong', dist:1.0, avail:true  },
-  { initials:'MI', name:'M. I.',   blood:['B+','AB+','O+'],         city:'Dhaka',      dist:3.1, avail:true  },
-  { initials:'NR', name:'N. R.',   blood:['A-','A+','AB-','AB+','O-','O+'], city:'Rajshahi', dist:0.8, avail:true },
-  { initials:'TK', name:'T. K.',   blood:['B-','B+','AB-','AB+','O-','O+'], city:'Dhaka',   dist:0.9, avail:true },
-  { initials:'AH', name:'A. H.',   blood:['A+','A-','B+','B-','AB+','AB-','O+','O-'], city:'Dhaka', dist:7.1, avail:true },
-];
+const BACKEND = 'http://localhost/smart-blood-donor/backend';
 
-/* Blood compatibility: recipient type → compatible donor types */
+/* ── Blood compatibility map (recipient type -> donor types) ── */
 const compatMap = {
-  'A+':  ['A+','A-','O+','O-'],
-  'A-':  ['A-','O-'],
-  'B+':  ['B+','B-','O+','O-'],
-  'B-':  ['B-','O-'],
-  'AB+': ['A+','A-','B+','B-','AB+','AB-','O+','O-'],
-  'AB-': ['A-','B-','AB-','O-'],
-  'O+':  ['O+','O-'],
+  'A+':  ['A+', 'A-', 'O+', 'O-'],
+  'A-':  ['A-', 'O-'],
+  'B+':  ['B+', 'B-', 'O+', 'O-'],
+  'B-':  ['B-', 'O-'],
+  'AB+': ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
+  'AB-': ['A-', 'B-', 'AB-', 'O-'],
+  'O+':  ['O+', 'O-'],
   'O-':  ['O-'],
 };
 
-function getMatches(bloodNeeded, city) {
-  if (!bloodNeeded) return [];
-  const compatDonorTypes = compatMap[bloodNeeded] || [];
-  return matchPool.filter(d => {
-    const bloodMatch = d.blood.some(bt => compatDonorTypes.includes(bt));
-    const cityMatch  = !city || d.city.toLowerCase().includes(city.toLowerCase());
-    return bloodMatch && cityMatch && d.avail;
-  }).slice(0, 4);
-}
-
-function renderMatchPreview(bloodNeeded, city) {
+/* ── Live match preview (uses backend) ──────────────────────── */
+async function renderMatchPreview(bloodNeeded, city) {
   const container = document.getElementById('matchPreview');
-  const matches = getMatches(bloodNeeded, city);
 
   if (!bloodNeeded) {
     container.innerHTML = `
@@ -45,39 +25,53 @@ function renderMatchPreview(bloodNeeded, city) {
     return;
   }
 
-  if (!matches.length) {
-    container.innerHTML = `
-      <div class="match-preview-empty">
-        <div class="match-preview-empty__icon">😔</div>
-        <p>No available donors found for <strong>${bloodNeeded}</strong>${city ? ' in ' + city : ''}. Your request will still be submitted and we'll notify donors when they become available.</p>
-      </div>`;
-    return;
-  }
+  container.innerHTML = `<div style="text-align:center;padding:1rem;color:var(--white-muted);">⏳ Searching donors...</div>`;
 
-  container.innerHTML = `
-    <div style="font-size:0.78rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--white-muted);margin-bottom:0.75rem;">
-      ${matches.length} potential match${matches.length > 1 ? 'es' : ''} found
-    </div>
-    ${matches.map(d => `
-      <div class="match-donor-item">
-        <div class="match-donor-avatar">${d.initials}</div>
-        <div>
-          <div class="match-donor-name">${d.name}</div>
-          <div class="match-donor-meta">📍 ${d.city} · ${d.dist} km · <span class="badge badge-success" style="padding:0.1rem 0.5rem;font-size:0.7rem;">Available</span></div>
-        </div>
+  try {
+    const params = new URLSearchParams({ bloodType: bloodNeeded });
+    if (city) params.set('city', city);
+    params.set('available', '1');
+
+    const res  = await fetch(`${BACKEND}/api/get_donors.php?${params}`);
+    const data = await res.json();
+    const matches = (data.donors || []).slice(0, 4);
+
+    if (!matches.length) {
+      container.innerHTML = `
+        <div class="match-preview-empty">
+          <div class="match-preview-empty__icon">😔</div>
+          <p>No available donors found for <strong>${bloodNeeded}</strong>${city ? ' in ' + city : ''}. Your request will still be submitted and donors will be notified.</p>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = `
+      <div style="font-size:0.78rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--white-muted);margin-bottom:0.75rem;">
+        ${matches.length} potential match${matches.length > 1 ? 'es' : ''} found
       </div>
-    `).join('')}
-    <div style="font-size:0.78rem;color:var(--white-muted);margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border-glass);">
-      All ${matches.length} donors will be notified when you submit.
-    </div>`;
+      ${matches.map(d => `
+        <div class="match-donor-item">
+          <div class="match-donor-avatar">${d.initials}</div>
+          <div>
+            <div class="match-donor-name">${d.name}</div>
+            <div class="match-donor-meta">📍 ${d.city} · <span class="badge badge-success" style="padding:0.1rem 0.5rem;font-size:0.7rem;">Available</span></div>
+          </div>
+        </div>
+      `).join('')}
+      <div style="font-size:0.78rem;color:var(--white-muted);margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border-glass);">
+        All ${matches.length} donors will be notified when you submit.
+      </div>`;
+  } catch {
+    container.innerHTML = `<div class="match-preview-empty"><div class="match-preview-empty__icon">💡</div><p>Could not load donor preview. Backend may not be running.</p></div>`;
+  }
 }
 
-/* ── Live update preview ────────────────────────────────────── */
+/* ── Live preview triggers ──────────────────────────────────── */
 const bloodInput = document.getElementById('bloodTypeNeeded');
 const cityInput  = document.getElementById('requestCity');
 
 function updatePreview() {
-  renderMatchPreview(bloodInput.value, cityInput.value);
+  renderMatchPreview(bloodInput?.value, cityInput?.value);
 }
 
 bloodInput?.addEventListener('change', updatePreview);
@@ -94,26 +88,23 @@ function showErr(id, msg) {
 function clearErr(id) { document.getElementById(id)?.classList.remove('show'); }
 function isPhone(v)   { return /^\+?[\d\s\-]{7,15}$/.test(v); }
 
-/* Live clear on input */
 ['patientName','bloodTypeNeeded','unitsNeeded','hospital','requestCity','contactNum'].forEach(id => {
   const el = document.getElementById(id);
   el?.addEventListener('input',  () => clearErr(id + 'Err'));
   el?.addEventListener('change', () => clearErr(id + 'Err'));
 });
 
-/* ── Form submit ─────────────────────────────────────────────── */
-document.getElementById('emergencyForm')?.addEventListener('submit', e => {
+/* ── Form submit → POST to backend ──────────────────────────── */
+document.getElementById('emergencyForm')?.addEventListener('submit', async e => {
   e.preventDefault();
   let valid = true;
 
   const checks = [
-    ['patientName', v => v.trim().length > 0, 'patientNameErr', 'Patient name required.'],
-    ['bloodTypeNeeded', v => v !== '',         'bloodTypeErr',   'Blood group required.'],
-    ['unitsNeeded', v => Number(v) >= 1,       'unitsErr',       'At least 1 unit required.'],
-    ['hospital',    v => v.trim().length > 0,  'hospitalErr',    'Hospital name required.'],
-    ['requestCity', v => v.trim().length > 0,  'cityErr',        'City required.'],
-    ['contactNum',  v => isPhone(v),           'contactErr',     'Valid contact number required.'],
-  ];
+      ['bloodTypeNeeded', v => v !== '',             'bloodTypeErr',   'Blood group required.'],
+      ['unitsNeeded',     v => Number(v) >= 1,       'unitsErr',       'At least 1 unit required.'],
+      ['hospital',        v => v.trim().length > 0,  'hospitalErr',    'Hospital name required.'],
+      ['requestCity',     v => v.trim().length > 0,  'cityErr',        'City required.'],
+    ];
 
   checks.forEach(([id, fn, errId, msg]) => {
     const el = document.getElementById(id);
@@ -122,10 +113,43 @@ document.getElementById('emergencyForm')?.addEventListener('submit', e => {
 
   if (!valid) return;
 
-  /* Show success */
-  document.getElementById('formContent').style.display = 'none';
-  document.getElementById('successState').classList.add('show');
+  const submitBtn = e.target.querySelector('[type=submit]');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting...'; }
 
-  /* Scroll into view */
-  document.querySelector('.emergency-form-card')?.scrollIntoView({ behavior:'smooth', block:'center' });
+  const payload = {
+      bloodTypeNeeded:   document.getElementById('bloodTypeNeeded').value,
+      unitsNeeded:       parseInt(document.getElementById('unitsNeeded').value),
+      reqHospitalCenter: document.getElementById('hospital').value.trim(),
+      requestCity:       document.getElementById('requestCity').value.trim(),
+      urgencyLvl:        document.querySelector('input[name="urgency"]:checked')?.value || 'high',
+      userID:            sessionStorage.getItem('userID') || '',
+    };
+
+  try {
+    const res  = await fetch(`${BACKEND}/api/emergency_request.php`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload),
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      // Show success panel
+      document.getElementById('formContent').style.display = 'none';
+      const successEl = document.getElementById('successState');
+      if (successEl) {
+        successEl.classList.add('show');
+        // Show the request ID in the success message if there's a spot for it
+        const ridEl = document.getElementById('successRequestID');
+        if (ridEl) ridEl.textContent = '#ER-' + String(data.requestID).padStart(4, '0');
+      }
+      document.querySelector('.emergency-form-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      showErr('contactErr', data.error || 'Submission failed. Please try again.');
+    }
+  } catch {
+    showErr('contactErr', 'Network error. Make sure the PHP backend is running.');
+  } finally {
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit Emergency Request'; }
+  }
 });

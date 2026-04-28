@@ -1,90 +1,44 @@
-/* ── Sample campaigns data ─────────────────────────────────── */
-const campaignsData = [
-  {
-    id: 1,
-    title: 'Life Drop Drive 2026',
-    tagline: '"Every drop counts, every life matters"',
-    company: 'RedCross Bangladesh',
-    companyIcon: '🏥',
-    location: 'Dhaka, Banani',
-    startDate: '2026-04-15',
-    endDate: '2026-05-15',
-    budget: 500000,
-    currentDonors: 84,
-    goalDonors: 200,
-    status: 'active',
-  },
-  {
-    id: 2,
-    title: 'Corporate Blood Pledge',
-    tagline: '"Professionals uniting for life"',
-    company: 'BRAC Bank',
-    companyIcon: '🏦',
-    location: 'Dhaka, Gulshan',
-    startDate: '2026-05-01',
-    endDate: '2026-05-30',
-    budget: 300000,
-    currentDonors: 12,
-    goalDonors: 100,
-    status: 'upcoming',
-  },
-  {
-    id: 3,
-    title: 'Sylhet Summer Save',
-    tagline: '"Together stronger, together saving lives"',
-    company: 'ACI Pharmaceuticals',
-    companyIcon: '💊',
-    location: 'Sylhet, Zindabazar',
-    startDate: '2026-03-01',
-    endDate: '2026-03-31',
-    budget: 200000,
-    currentDonors: 150,
-    goalDonors: 150,
-    status: 'ended',
-  },
-  {
-    id: 4,
-    title: 'Port City Blood Fest',
-    tagline: '"Chittagong gives back"',
-    company: 'Chittagong Port Authority',
-    companyIcon: '⚓',
-    location: 'Chittagong, Agrabad',
-    startDate: '2026-04-20',
-    endDate: '2026-06-20',
-    budget: 400000,
-    currentDonors: 58,
-    goalDonors: 300,
-    status: 'active',
-  },
-  {
-    id: 5,
-    title: 'Youth Blood Champions',
-    tagline: '"Young hearts, big impact"',
-    company: 'Dhaka University',
-    companyIcon: '🎓',
-    location: 'Dhaka, Nilkhet',
-    startDate: '2026-06-01',
-    endDate: '2026-06-15',
-    budget: 150000,
-    currentDonors: 0,
-    goalDonors: 500,
-    status: 'upcoming',
-  },
-  {
-    id: 6,
-    title: 'Rajshahi Harvest of Hope',
-    tagline: '"Harvest season, save a life"',
-    company: 'Rajshahi Chamber of Commerce',
-    companyIcon: '🌾',
-    location: 'Rajshahi, Shaheb Bazar',
-    startDate: '2026-04-10',
-    endDate: '2026-04-25',
-    budget: 180000,
-    currentDonors: 95,
-    goalDonors: 120,
-    status: 'active',
-  },
-];
+const BACKEND = 'http://localhost/smart-blood-donor/backend';
+
+let campaignsData = [];
+
+/* ── Load campaigns from backend ────────────────────────────── */
+async function loadCampaigns() {
+  const grid = document.getElementById('campaignsGrid');
+  grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem 0;color:var(--white-muted);">
+    <div style="font-size:2rem;margin-bottom:0.5rem;">⏳</div>Loading campaigns...</div>`;
+
+  try {
+    const res  = await fetch(`${BACKEND}/api/campaigns_rewards.php`);
+    const data = await res.json();
+
+    if (data.campaigns && data.campaigns.length > 0) {
+      campaignsData = data.campaigns;
+      renderCampaigns(campaignsData);
+    } else {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem 0;color:var(--white-muted);">
+        <div style="font-size:3rem;margin-bottom:1rem;">📣</div>
+        <h3>No campaigns found</h3><p>Run schema.sql to seed sample data.</p></div>`;
+    }
+  } catch {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem 0;color:var(--white-muted);">
+      <div style="font-size:3rem;margin-bottom:1rem;">⚠️</div>
+      <h3>Could not load campaigns</h3>
+      <p>Make sure the PHP backend is running (XAMPP / PHP server).</p></div>`;
+  }
+}
+
+const companyIcons = {
+  'RedCross': '🏥', 'BRAC': '🏦', 'ACI': '💊',
+  'Chittagong': '⚓', 'Dhaka University': '🎓', 'Rajshahi': '🌾',
+};
+
+function getIcon(companyName) {
+  for (const [key, icon] of Object.entries(companyIcons)) {
+    if (companyName.includes(key)) return icon;
+  }
+  return '📣';
+}
 
 function statusBadge(status) {
   if (status === 'active')   return '<span class="badge badge-success">Active</span>';
@@ -106,18 +60,25 @@ function renderCampaigns(data) {
   }
 
   grid.innerHTML = data.map(c => {
-    const pct = Math.min(Math.round((c.currentDonors / c.goalDonors) * 100), 100);
+    const pct     = Math.min(Math.round((c.currentDonors / (c.goalDonors || 1)) * 100), 100);
+    const icon    = getIcon(c.companyName);
+    const rewards = c.rewards && c.rewards.length > 0
+      ? `<div style="font-size:0.78rem;color:var(--white-muted);margin-top:0.5rem;">
+           🎁 ${c.rewards.map(r => r.rewardItem).join(' · ')}
+         </div>`
+      : '';
+
     return `
     <div class="campaign-card reveal">
       <div class="campaign-card__banner"></div>
       <div class="campaign-card__body">
         <div class="campaign-card__company">
-          <div class="company-logo">${c.companyIcon}</div>
-          <div class="company-name">${c.company}</div>
+          <div class="company-logo">${icon}</div>
+          <div class="company-name">${c.companyName}</div>
           ${statusBadge(c.status)}
         </div>
         <div class="campaign-card__title">${c.title}</div>
-        <div class="campaign-card__tagline">${c.tagline}</div>
+        <div class="campaign-card__tagline">${c.tagline || ''}</div>
         <div class="campaign-card__meta">
           <div class="meta-item">
             <div class="meta-item__label">📅 Start</div>
@@ -129,11 +90,11 @@ function renderCampaigns(data) {
           </div>
           <div class="meta-item">
             <div class="meta-item__label">📍 Location</div>
-            <div class="meta-item__value">${c.location}</div>
+            <div class="meta-item__value">${c.location || '—'}</div>
           </div>
           <div class="meta-item">
             <div class="meta-item__label">💰 Budget</div>
-            <div class="meta-item__value">৳${(c.budget/1000).toFixed(0)}K</div>
+            <div class="meta-item__value">৳${(c.budget / 1000).toFixed(0)}K</div>
           </div>
         </div>
         <div class="campaign-progress">
@@ -145,11 +106,12 @@ function renderCampaigns(data) {
             <div class="progress-bar__fill" style="width:${pct}%;"></div>
           </div>
         </div>
+        ${rewards}
       </div>
       <div class="campaign-card__footer">
         <div class="campaign-status">🎯 Goal: ${c.goalDonors} donors</div>
         <button class="btn ${c.status === 'ended' ? 'btn-outline' : 'btn-primary'} btn-sm camp-register-btn"
-          data-id="${c.id}" data-title="${c.title}"
+          data-id="${c.campaignID}" data-title="${c.title}"
           ${c.status === 'ended' ? 'disabled' : ''}>
           ${c.status === 'ended' ? 'Ended' : 'Register Interest'}
         </button>
@@ -157,7 +119,6 @@ function renderCampaigns(data) {
     </div>`;
   }).join('');
 
-  /* re-attach button handlers */
   document.querySelectorAll('.camp-register-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.getElementById('modalCampTitle').textContent = btn.dataset.title;
@@ -179,8 +140,8 @@ function applyFilters() {
   const status = document.getElementById('campStatus').value;
 
   const result = campaignsData.filter(c => {
-    if (q && !c.title.toLowerCase().includes(q) && !c.company.toLowerCase().includes(q)) return false;
-    if (city && !c.location.toLowerCase().includes(city)) return false;
+    if (q && !c.title.toLowerCase().includes(q) && !c.companyName.toLowerCase().includes(q)) return false;
+    if (city && !(c.location || '').toLowerCase().includes(city)) return false;
     if (status && c.status !== status) return false;
     return true;
   });
@@ -206,9 +167,9 @@ document.getElementById('campModal').addEventListener('click', e => {
 });
 document.getElementById('campRegForm').addEventListener('submit', e => {
   e.preventDefault();
-  alert('Thank you! Your interest has been registered. A confirmation will be sent to your email.');
+  alert('Thank you! Your interest has been registered.');
   document.getElementById('campModal').classList.remove('open');
   e.target.reset();
 });
 
-renderCampaigns(campaignsData);
+loadCampaigns();
